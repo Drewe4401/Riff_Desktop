@@ -1,4 +1,4 @@
-<img src="src/renderer/assets/icon.png" alt="Riff Logo" width="128" />
+# Riff
 
 > A modern, sleek desktop music player that lets you search, organize, and download your favorite tracks locally. Built with Electron and styled for a premium user experience.
 
