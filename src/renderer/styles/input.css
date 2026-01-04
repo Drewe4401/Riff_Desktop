@@ -1,0 +1,433 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    body {
+        @apply bg-bg-dark text-text-main font-outfit overflow-hidden select-none text-base;
+    }
+}
+
+@layer components {
+
+    /* ==================== TRACK CARDS ==================== */
+    .track-card {
+        @apply relative p-4 rounded-xl cursor-pointer transition-all duration-300;
+        @apply bg-white/5 border border-transparent;
+        @apply hover:bg-white/10 hover:-translate-y-1 hover:shadow-2xl hover:border-white/10;
+    }
+
+    .track-card-image {
+        @apply relative mb-4 aspect-square rounded-lg overflow-hidden bg-neutral-900 shadow-lg;
+    }
+
+    .track-card-image img {
+        @apply w-full h-full object-cover transition-transform duration-500;
+    }
+
+    .track-card:hover .track-card-image img {
+        @apply scale-105;
+    }
+
+    .track-card-overlay {
+        @apply absolute inset-0 bg-black/50 opacity-0 transition-opacity duration-300;
+        @apply flex items-center justify-center;
+    }
+
+    .track-card:hover .track-card-overlay {
+        @apply opacity-100;
+    }
+
+    .play-btn {
+        @apply w-12 h-12 rounded-full bg-accent-primary text-black;
+        @apply flex items-center justify-center shadow-lg;
+        @apply transform scale-90 transition-all duration-300;
+        @apply hover:scale-100 hover:bg-white;
+    }
+
+    .play-btn svg {
+        @apply translate-x-[1px];
+    }
+
+    .track-card-actions {
+        @apply absolute top-2 right-2 flex flex-col gap-1;
+        @apply opacity-0 transform translate-y-2 transition-all duration-300;
+    }
+
+    .track-card:hover .track-card-actions {
+        @apply opacity-100 translate-y-0;
+    }
+
+    .action-btn {
+        @apply w-8 h-8 rounded-full bg-black/60 backdrop-blur-sm;
+        @apply flex items-center justify-center text-white;
+        @apply transition-all duration-200 hover:bg-white hover:text-black;
+    }
+
+    .action-btn.active,
+    .action-btn.like-btn.active {
+        @apply text-red-500;
+    }
+
+    .action-btn.like-btn.active:hover {
+        @apply bg-red-500 text-white;
+    }
+
+    .action-btn.downloaded {
+        @apply bg-accent-primary text-black;
+    }
+
+    .action-btn.downloaded:hover {
+        @apply bg-accent-primary/80;
+    }
+
+    .explicit-badge {
+        @apply absolute bottom-2 left-2 px-1.5 py-0.5 rounded text-[10px] font-bold;
+        @apply bg-white/20 text-white/80;
+    }
+
+    .track-card-info {
+        @apply space-y-1;
+    }
+
+    .track-name {
+        @apply font-bold text-white truncate text-base;
+    }
+
+    .track-artist {
+        @apply text-sm text-text-muted truncate transition-colors;
+    }
+
+    .track-card:hover .track-artist {
+        @apply text-white;
+    }
+
+    .track-meta {
+        @apply flex items-center gap-2 text-xs text-text-muted/60;
+    }
+
+    .track-duration {
+        @apply font-mono;
+    }
+
+    /* Download Progress */
+    .download-progress {
+        @apply absolute bottom-0 left-0 right-0 h-1 bg-white/10 rounded-b-xl overflow-hidden;
+    }
+
+    .download-progress-bar {
+        @apply h-full bg-accent-primary transition-all duration-300;
+        width: 0%;
+    }
+
+    /* Load More Indicator */
+    .load-more-indicator {
+        @apply col-span-full flex items-center justify-center gap-3 py-8 text-text-muted;
+    }
+
+    /* ==================== LOADING SPINNER ==================== */
+    .loading-spinner {
+        @apply w-6 h-6 border-2 border-white/20 border-t-accent-primary rounded-full animate-spin;
+    }
+
+    /* ==================== MODAL ==================== */
+    .modal-overlay {
+        @apply fixed inset-0 z-50 flex items-center justify-center;
+        @apply bg-black/70 backdrop-blur-sm;
+        animation: fadeIn 0.2s ease;
+    }
+
+    .modal-content {
+        @apply bg-bg-panel border border-white/10 rounded-2xl shadow-2xl;
+        @apply w-full max-w-md mx-4 overflow-hidden;
+        animation: slideUp 0.3s ease;
+    }
+
+    .modal-header {
+        @apply flex items-center justify-between px-6 py-4 border-b border-white/10;
+    }
+
+    .modal-header h3 {
+        @apply text-lg font-bold text-white;
+    }
+
+    .modal-close {
+        @apply p-2 text-text-muted hover:text-white hover:bg-white/10 rounded-lg transition-colors;
+    }
+
+    .modal-body {
+        @apply p-6 max-h-[60vh] overflow-y-auto;
+    }
+
+    .modal-input {
+        @apply w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10;
+        @apply text-white placeholder-text-muted outline-none;
+        @apply focus:border-accent-primary/50 focus:bg-white/10 transition-all;
+    }
+
+    .new-playlist-form {
+        @apply flex gap-3 mb-4;
+    }
+
+    .btn-primary {
+        @apply px-4 py-3 rounded-lg bg-accent-primary text-black font-semibold;
+        @apply hover:bg-accent-primary/90 transition-colors whitespace-nowrap;
+    }
+
+    .playlist-list {
+        @apply space-y-1;
+    }
+
+    .playlist-item {
+        @apply flex items-center justify-between px-4 py-3 rounded-lg;
+        @apply hover:bg-white/10 cursor-pointer transition-colors;
+    }
+
+    .playlist-name {
+        @apply text-white font-medium;
+    }
+
+    .playlist-count {
+        @apply text-xs text-text-muted;
+    }
+
+    /* ==================== TOAST NOTIFICATIONS ==================== */
+    .toast {
+        @apply fixed bottom-28 left-1/2 -translate-x-1/2 z-50;
+        @apply flex items-center gap-3 px-5 py-3 rounded-xl;
+        @apply bg-bg-panel border border-white/10 shadow-2xl;
+        @apply transform translate-y-4 opacity-0 transition-all duration-300;
+    }
+
+    .toast.show {
+        @apply translate-y-0 opacity-100;
+    }
+
+    .toast-icon {
+        @apply flex-shrink-0;
+    }
+
+    .toast-message {
+        @apply text-sm font-medium text-white;
+    }
+
+    .toast-success .toast-icon {
+        @apply text-accent-primary;
+    }
+
+    .toast-error .toast-icon {
+        @apply text-red-500;
+    }
+
+    .toast-warning .toast-icon {
+        @apply text-yellow-500;
+    }
+
+    .toast-info .toast-icon {
+        @apply text-blue-400;
+    }
+
+    /* ==================== NAVIGATION ==================== */
+    .nav-link {
+        @apply text-text-muted border-l-2 border-transparent;
+    }
+
+    .nav-link:hover {
+        @apply text-white bg-white/5 border-white/10;
+    }
+
+    .nav-link.active {
+        @apply text-white bg-white/10 border-accent-primary;
+    }
+
+    .nav-link.active svg {
+        @apply text-accent-primary;
+    }
+
+    /* ==================== VIEW SECTIONS ==================== */
+    .view-section {
+        @apply hidden;
+    }
+
+    .view-section.active {
+        @apply block;
+        animation: fadeIn 0.2s ease;
+    }
+
+    /* ==================== PLAYLIST CARDS ==================== */
+    .playlist-card {
+        @apply relative p-5 rounded-xl cursor-pointer transition-all duration-300;
+        @apply bg-white/5 border border-transparent;
+        @apply hover:bg-white/10 hover:-translate-y-1 hover:shadow-2xl hover:border-white/10;
+    }
+
+    .playlist-card-cover {
+        @apply w-full aspect-square rounded-lg mb-4 bg-neutral-800 flex items-center justify-center overflow-hidden;
+        @apply shadow-lg;
+    }
+
+    .playlist-card-cover img {
+        @apply w-full h-full object-cover;
+    }
+
+    .playlist-card-cover svg {
+        @apply w-12 h-12 text-text-muted/50;
+    }
+
+    .playlist-card-name {
+        @apply font-bold text-white truncate text-base mb-1;
+    }
+
+    .playlist-card-info {
+        @apply text-sm text-text-muted;
+    }
+
+    .playlist-card-actions {
+        @apply absolute top-3 right-3 opacity-0 transition-opacity duration-200;
+    }
+
+    .playlist-card:hover .playlist-card-actions {
+        @apply opacity-100;
+    }
+
+    .playlist-card .play-hover {
+        @apply absolute bottom-20 right-4 w-12 h-12 rounded-full bg-accent-primary text-black;
+        @apply flex items-center justify-center shadow-xl;
+        @apply opacity-0 translate-y-2 transition-all duration-300;
+    }
+
+    .playlist-card:hover .play-hover {
+        @apply opacity-100 translate-y-0;
+    }
+
+    /* Liked Songs Special Card */
+    .playlist-card.liked-songs .playlist-card-cover {
+        @apply bg-gradient-to-br from-purple-600 via-purple-700 to-indigo-900;
+    }
+
+    /* ==================== TRACK LIST ==================== */
+    .track-row {
+        @apply flex items-center gap-4 px-4 py-3 rounded-lg;
+        @apply hover:bg-white/5 transition-colors cursor-pointer;
+    }
+
+    .track-row-number {
+        @apply w-8 text-center text-text-muted text-sm font-mono;
+    }
+
+    .track-row:hover .track-row-number {
+        @apply hidden;
+    }
+
+    .track-row-play {
+        @apply w-8 h-8 items-center justify-center hidden;
+    }
+
+    .track-row:hover .track-row-play {
+        @apply flex;
+    }
+
+    .track-row-image {
+        @apply w-12 h-12 rounded bg-neutral-800 overflow-hidden shrink-0;
+    }
+
+    .track-row-image img {
+        @apply w-full h-full object-cover;
+    }
+
+    .track-row-info {
+        @apply flex-1 min-w-0;
+    }
+
+    .track-row-title {
+        @apply font-medium text-white truncate;
+    }
+
+    .track-row-artist {
+        @apply text-sm text-text-muted truncate;
+    }
+
+    .track-row-duration {
+        @apply text-sm text-text-muted font-mono;
+    }
+
+    .track-row-actions {
+        @apply flex items-center gap-2 opacity-0 transition-opacity;
+    }
+
+    .track-row:hover .track-row-actions {
+        @apply opacity-100;
+    }
+
+    .track-row-actions button {
+        @apply p-2 text-text-muted hover:text-white transition-colors;
+    }
+
+    .track-row-actions button.text-red-500 {
+        @apply hover:text-red-400;
+    }
+
+    /* Empty Library State */
+    .library-empty {
+        @apply text-center py-16;
+    }
+
+    .library-empty-icon {
+        @apply w-24 h-24 mx-auto mb-6 text-text-muted/30;
+    }
+
+    .library-empty h3 {
+        @apply text-xl font-bold text-white mb-2;
+    }
+
+    .library-empty p {
+        @apply text-text-muted mb-6;
+    }
+}
+
+@layer utilities {
+    .glass {
+        @apply backdrop-blur-3xl border border-white/10;
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+        background: rgba(255, 255, 255, 0.2);
+    }
+}
+
+/* Keyframes */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

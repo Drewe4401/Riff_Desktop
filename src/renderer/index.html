@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Riff</title>
+    <!-- Content Security Policy -->
+    <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self' https://api.spotify.com https://i.scdn.co; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com;">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="./styles/index.css">
+</head>
+
+<body
+    class="bg-bg-dark text-text-main font-outfit overflow-hidden h-screen selection:bg-accent-primary selection:text-black">
+    <div id="app-container" class="flex flex-col h-full">
+        <!-- Title Bar -->
+        <div id="title-bar"
+            class="h-8 bg-transparent flex justify-between items-center px-3 z-50 select-none drag-region">
+            <div class="app-icon text-xs font-bold tracking-widest text-accent-primary uppercase opacity-80">Riff</div>
+            <div class="window-controls no-drag-region">
+                <button id="min-btn" class="control-btn" title="Minimize">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                </button>
+                <button id="max-btn" class="control-btn" title="Maximize">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <rect x="4" y="4" width="16" height="16" rx="1"></rect>
+                    </svg>
+                </button>
+                <button id="close-btn" class="control-btn" title="Close">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Main Layout -->
+        <div id="main-layout" class="flex flex-1 overflow-hidden relative">
+
+            <!-- Sidebar -->
+            <aside id="sidebar"
+                class="w-64 bg-black/20 backdrop-blur-3xl border-r border-white/5 flex flex-col z-10 shrink-0 h-full">
+                <!-- Brand -->
+                <div class="brand-section h-20 flex items-center gap-3 px-6 shrink-0">
+                    <div
+                        class="w-8 h-8 rounded-lg bg-gradient-to-br from-accent-primary to-accent-secondary flex items-center justify-center shadow-[0_0_15px_rgba(0,255,136,0.2)]">
+                        <span class="font-extrabold text-black text-lg">R</span>
+                    </div>
+                    <span class="text-xl font-bold tracking-tight text-white">Riff</span>
+                </div>
+
+                <!-- Main Nav -->
+                <nav class="main-nav px-3 flex-col gap-1 shrink-0">
+                    <ul class="flex flex-col gap-1">
+                        <li class="nav-item group" data-view="home">
+                            <div id="nav-home"
+                                class="nav-link active flex items-center gap-4 px-4 py-3 rounded-md cursor-pointer transition-all duration-200">
+                                <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                                    stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                                    <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                                </svg>
+                                <span class="font-medium text-sm">Home</span>
+                            </div>
+                        </li>
+                        <li class="nav-item group" data-view="library">
+                            <div id="nav-library"
+                                class="nav-link flex items-center gap-4 px-4 py-3 rounded-md cursor-pointer transition-all duration-200">
+                                <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                                    stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
+                                </svg>
+                                <span class="font-medium text-sm">Library</span>
+                            </div>
+                        </li>
+                    </ul>
+                </nav>
+
+                <!-- Divider -->
+                <div class="px-6 py-6 shrink-0">
+                    <div class="h-px bg-white/10"></div>
+                </div>
+
+                <!-- Playlists (Scalable) -->
+                <div class="playlist-nav flex-1 overflow-y-auto px-6 pb-6 scrollbar-hide">
+                    <div class="flex items-center justify-between mb-4 group cursor-pointer">
+                        <span
+                            class="text-[11px] font-bold text-text-muted tracking-[1.5px] uppercase group-hover:text-white transition-colors">Playlists</span>
+                        <svg class="w-4 h-4 text-text-muted opacity-0 group-hover:opacity-100 transition-opacity hover:text-white"
+                            fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4">
+                            </path>
+                        </svg>
+                    </div>
+                    <ul class="flex flex-col gap-1">
+                        <li
+                            class="p-2 text-sm text-text-muted hover:text-white cursor-pointer transition-colors duration-200 truncate rounded-md hover:bg-white/5">
+                            Liked Songs</li>
+                        <li
+                            class="p-2 text-sm text-text-muted hover:text-white cursor-pointer transition-colors duration-200 truncate rounded-md hover:bg-white/5">
+                            Daily Mix 1</li>
+                        <li
+                            class="p-2 text-sm text-text-muted hover:text-white cursor-pointer transition-colors duration-200 truncate rounded-md hover:bg-white/5">
+                            Discover Weekly</li>
+                        <li
+                            class="p-2 text-sm text-text-muted hover:text-white cursor-pointer transition-colors duration-200 truncate rounded-md hover:bg-white/5">
+                            Release Radar</li>
+                        <li
+                            class="p-2 text-sm text-text-muted hover:text-white cursor-pointer transition-colors duration-200 truncate rounded-md hover:bg-white/5">
+                            On Repeat</li>
+                        <li
+                            class="p-2 text-sm text-text-muted hover:text-white cursor-pointer transition-colors duration-200 truncate rounded-md hover:bg-white/5">
+                            Top Hits 2024</li>
+                    </ul>
+                </div>
+            </aside>
+
+            <!-- Content Area -->
+            <main id="content-area"
+                class="flex-1 p-8 overflow-y-auto bg-gradient-to-br from-bg-dark to-[#0a0a0a] relative scroll-smooth">
+                <!-- Background Glow -->
+                <div
+                    class="absolute top-0 left-0 w-full h-96 bg-accent-primary/5 blur-[120px] rounded-full pointer-events-none -translate-y-1/2">
+                </div>
+
+                <!-- ==================== HOME VIEW (Search) ==================== -->
+                <div id="home-view" class="view-section active relative z-10">
+                    <header class="mb-8">
+                        <div
+                            class="search-container group flex items-center gap-3 bg-neutral-900/60 border border-white/5 hover:border-white/10 rounded-full px-5 py-3 max-w-md w-[480px] transition-all duration-300 focus-within:border-accent-primary/40 focus-within:bg-neutral-900/80 focus-within:shadow-[0_0_20px_rgba(0,255,136,0.1)] backdrop-blur-sm">
+                            <svg class="w-5 h-5 text-text-muted group-focus-within:text-accent-primary transition-colors shrink-0"
+                                xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="11" cy="11" r="8"></circle>
+                                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                            </svg>
+                            <input type="text" id="search-input" placeholder="What do you want to listen to?"
+                                class="bg-transparent border-none outline-none text-white placeholder-neutral-500 w-full text-sm tracking-wide">
+                        </div>
+                    </header>
+
+                    <div id="results-area" class="min-h-[50vh]">
+                        <div class="empty-state text-center pt-24 text-text-muted opacity-80">
+                            <h2 class="text-2xl font-bold text-white mb-2 tracking-tight">Search for your favorite
+                                tracks
+                            </h2>
+                            <p class="text-base font-light">Find music from Spotify's entire library.</p>
+                        </div>
+                        <div id="track-grid"
+                            class="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-6 pb-24 hidden">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ==================== LIBRARY VIEW ==================== -->
+                <div id="library-view" class="view-section relative z-10 hidden">
+                    <!-- Library Header -->
+                    <header class="mb-8 flex items-center justify-between">
+                        <div>
+                            <h1 class="text-3xl font-bold text-white mb-1">Your Library</h1>
+                            <p class="text-text-muted text-sm">Manage your playlists and liked songs</p>
+                        </div>
+                        <button id="create-playlist-btn"
+                            class="flex items-center gap-2 px-4 py-2.5 bg-accent-primary text-black font-semibold rounded-full hover:bg-accent-primary/90 transition-all hover:scale-105">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 4v16m8-8H4" />
+                            </svg>
+                            <span>New Playlist</span>
+                        </button>
+                    </header>
+
+                    <!-- Playlist Grid View -->
+                    <div id="playlist-grid-view">
+                        <div id="playlist-grid"
+                            class="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-6 pb-24">
+                            <!-- Playlists will be injected here -->
+                        </div>
+                    </div>
+
+                    <!-- Playlist Detail View (hidden by default) -->
+                    <div id="playlist-detail-view" class="hidden">
+                        <div class="playlist-header flex items-end gap-6 mb-8">
+                            <div id="playlist-cover"
+                                class="w-48 h-48 bg-neutral-800 rounded-lg shadow-2xl flex items-center justify-center">
+                                <svg class="w-16 h-16 text-text-muted" fill="none" stroke="currentColor"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                        d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+                                </svg>
+                            </div>
+                            <div class="flex-1">
+                                <span
+                                    class="text-xs uppercase tracking-wider text-text-muted mb-2 block">Playlist</span>
+                                <h1 id="playlist-detail-title" class="text-4xl font-bold text-white mb-2">Playlist Name
+                                </h1>
+                                <p id="playlist-detail-count" class="text-text-muted">0 songs</p>
+                                <div class="flex items-center gap-3 mt-4">
+                                    <button id="play-playlist-btn"
+                                        class="w-12 h-12 rounded-full bg-accent-primary text-black flex items-center justify-center hover:scale-105 transition-transform">
+                                        <svg class="w-6 h-6 translate-x-[1px]" fill="currentColor" viewBox="0 0 24 24">
+                                            <path d="M8 5v14l11-7z" />
+                                        </svg>
+                                    </button>
+                                    <button id="delete-playlist-btn"
+                                        class="p-3 text-text-muted hover:text-red-500 transition-colors"
+                                        title="Delete Playlist">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                        </svg>
+                                    </button>
+                                    <button id="back-to-library-btn"
+                                        class="p-3 text-text-muted hover:text-white transition-colors"
+                                        title="Back to Library">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Track List -->
+                        <div id="playlist-tracks" class="space-y-1 pb-24">
+                            <!-- Tracks will be injected here -->
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+
+        <!-- Player Bar -->
+        <footer id="player-bar"
+            class="h-24 bg-bg-panel backdrop-blur-3xl border-t border-white/5 flex items-center justify-between px-6 z-50 fixed bottom-0 w-full">
+            <!-- Now Playing -->
+            <div class="now-playing flex items-center gap-4 w-[30%]">
+                <div id="np-image-placeholder"
+                    class="w-16 h-16 bg-neutral-800 rounded-lg shadow-lg bg-cover bg-center shrink-0 border border-white/5">
+                </div>
+                <div class="np-info flex flex-col justify-center overflow-hidden">
+                    <div id="np-title" class="font-bold text-sm text-white truncate mb-1">No Track Playing</div>
+                    <div id="np-artist"
+                        class="text-xs text-text-muted truncate hover:text-white transition-colors cursor-pointer">
+                        Select a track to play</div>
+                </div>
+            </div>
+
+            <!-- Player Controls -->
+            <div class="player-center flex flex-col items-center w-[40%] gap-2">
+                <div class="player-controls flex items-center gap-6">
+                    <button id="prev-btn"
+                        class="text-text-muted hover:text-white transition-colors p-2 rounded-full hover:bg-white/5">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M19 20L9 12l10-8v16zM5 19V5h2v14H5z" />
+                        </svg>
+                    </button>
+                    <button id="play-pause-btn"
+                        class="w-14 h-14 rounded-full bg-white text-black flex items-center justify-center transform transition-all duration-200 hover:scale-105 hover:bg-accent-primary hover:shadow-[0_0_20px_rgba(0,255,136,0.3)] group">
+                        <svg id="play-icon" class="w-6 h-6 translate-x-[1px] transition-colors" fill="currentColor"
+                            viewBox="0 0 24 24">
+                            <path d="M8 5v14l11-7z" />
+                        </svg>
+                        <svg id="pause-icon" class="w-6 h-6 hidden" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
+                        </svg>
+                    </button>
+                    <button id="next-btn"
+                        class="text-text-muted hover:text-white transition-colors p-2 rounded-full hover:bg-white/5">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M5 4l10 8-10 8V4zM19 5h-2v14h2V5z" />
+                        </svg>
+                    </button>
+                </div>
+                <div
+                    class="progress-bar-container w-full flex items-center gap-3 text-xs text-text-muted font-medium font-mono">
+                    <span class="time-current min-w-[32px] text-right">0:00</span>
+                    <div
+                        class="progress-bar flex-1 h-1.5 bg-white/10 rounded-full cursor-pointer relative group overflow-hidden">
+                        <div
+                            class="progress-fill absolute top-0 left-0 h-full bg-white rounded-full w-0 group-hover:bg-accent-primary transition-colors">
+                        </div>
+                    </div>
+                    <span class="time-total min-w-[32px]">0:00</span>
+                </div>
+            </div>
+
+            <!-- Volume -->
+            <div class="volume-controls w-[30%] flex justify-end items-center gap-3 group">
+                <svg class="w-5 h-5 text-text-muted" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                    <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                </svg>
+                <div class="volume-slider w-24 h-1.5 bg-white/10 rounded-full cursor-pointer relative overflow-hidden">
+                    <div
+                        class="volume-fill absolute top-0 left-0 h-full bg-text-muted rounded-full w-[80%] group-hover:bg-white transition-colors">
+                    </div>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Drag Region and Window Controls Styling -->
+    <style>
+        .drag-region {
+            -webkit-app-region: drag;
+        }
+
+        .no-drag-region {
+            -webkit-app-region: no-drag;
+        }
+
+        /* Window Control Buttons - Professional Windows-style */
+        .window-controls {
+            display: flex;
+            height: 100%;
+        }
+
+        .control-btn {
+            -webkit-app-region: no-drag;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 46px;
+            height: 32px;
+            border: none;
+            background: transparent;
+            color: rgba(255, 255, 255, 0.6);
+            cursor: pointer;
+            transition: all 0.15s ease;
+            outline: none;
+        }
+
+        .control-btn:hover {
+            color: white;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .control-btn:active {
+            background: rgba(255, 255, 255, 0.15);
+            transform: scale(0.95);
+        }
+
+        .control-btn svg {
+            width: 10px;
+            height: 10px;
+            stroke-width: 2;
+        }
+
+        /* Close button special styling */
+        #close-btn:hover {
+            background: #e81123;
+            color: white;
+        }
+
+        #close-btn:active {
+            background: #bf0f1d;
+        }
+    </style>
+
+    <script src="./scripts/renderer.js"></script>
+</body>
+
+</html>
