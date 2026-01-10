@@ -972,7 +972,9 @@ document.addEventListener('mouseup', () => {
 // Click on volume icon to mute/unmute
 let previousVolume = currentVolume;
 volumeIcon?.parentElement?.addEventListener('click', (e) => {
-    if (e.target.closest('.volume-slider')) return; // Don't trigger on slider click
+    // Don't trigger on slider click or miniplayer button click
+    if (e.target.closest('.volume-slider')) return;
+    if (e.target.closest('#miniplayer-btn')) return;
 
     if (currentVolume > 0) {
         previousVolume = currentVolume;
@@ -1547,4 +1549,157 @@ async function handleSetCover(playlistId) {
     }
 }
 
+// ==================== MINIPLAYER INTEGRATION ====================
+const miniplayerBtn = document.getElementById('miniplayer-btn');
+let isMiniplayerOpen = false;
+
+// Open miniplayer button handler
+miniplayerBtn?.addEventListener('click', async (e) => {
+    e.stopPropagation(); // Prevent triggering volume control click
+
+    const isOpen = await window.electronAPI.isMiniplayerOpen();
+    if (!isOpen) {
+        window.electronAPI.openMiniplayer();
+        isMiniplayerOpen = true;
+        miniplayerBtn.classList.add('text-accent-primary');
+        miniplayerBtn.classList.remove('text-text-muted');
+        showToast('Miniplayer opened', 'info');
+
+        // Send initial state after a small delay to ensure miniplayer is ready
+        setTimeout(() => {
+            sendPlaybackStateToMiniplayer();
+        }, 300);
+    } else {
+        window.electronAPI.closeMiniplayer();
+        isMiniplayerOpen = false;
+        miniplayerBtn.classList.remove('text-accent-primary');
+        miniplayerBtn.classList.add('text-text-muted');
+    }
+});
+
+// Handle miniplayer closed notification
+window.electronAPI.onMiniplayerClosed(() => {
+    isMiniplayerOpen = false;
+    miniplayerBtn?.classList.remove('text-accent-primary');
+    miniplayerBtn?.classList.add('text-text-muted');
+});
+
+// Handle miniplayer control commands
+window.electronAPI.onMiniplayerControl((action) => {
+    // Check if it's a volume command
+    if (action.startsWith('volume:')) {
+        const volumeValue = parseFloat(action.split(':')[1]);
+        if (!isNaN(volumeValue)) {
+            setVolume(volumeValue);
+        }
+        return;
+    }
+
+    // Check if it's a play-playlist command
+    if (action.startsWith('play-playlist:')) {
+        const playlistId = action.split(':')[1];
+        playPlaylistFromMiniplayer(playlistId);
+        return;
+    }
+
+    switch (action) {
+        case 'toggle-play':
+            togglePlay();
+            break;
+        case 'prev':
+            playPreviousTrack();
+            break;
+        case 'next':
+            playNextTrack();
+            break;
+        case 'shuffle':
+            toggleShuffle();
+            sendPlaybackStateToMiniplayer();
+            break;
+        case 'loop':
+            toggleLoop();
+            sendPlaybackStateToMiniplayer();
+            break;
+    }
+});
+
+// Play a playlist from miniplayer request
+async function playPlaylistFromMiniplayer(playlistId) {
+    try {
+        const result = await window.electronAPI.getPlaylist(playlistId);
+        if (result.success && result.playlist && result.playlist.tracks.length > 0) {
+            const tracks = result.playlist.tracks;
+            playTrack(tracks[0], tracks, 0);
+            showToast(`Playing "${result.playlist.name}"`, 'success');
+        } else {
+            showToast('Playlist is empty', 'warning');
+        }
+    } catch (error) {
+        console.error('Error playing playlist from miniplayer:', error);
+    }
+}
+
+// Handle miniplayer seek
+window.electronAPI.onMiniplayerSeek((percent) => {
+    if (currentAudio.duration) {
+        currentAudio.currentTime = percent * currentAudio.duration;
+    }
+});
+
+// Handle playback state request from miniplayer
+window.electronAPI.onRequestPlaybackState(() => {
+    sendPlaybackStateToMiniplayer();
+});
+
+// Send current playback state to miniplayer
+function sendPlaybackStateToMiniplayer() {
+    const state = {
+        track: currentTrack,
+        isPlaying: isPlaying,
+        isShuffleEnabled: isShuffleEnabled,
+        loopMode: loopMode,
+        currentTime: currentAudio.currentTime || 0,
+        duration: currentAudio.duration || 0,
+        volume: currentVolume
+    };
+    window.electronAPI.sendPlaybackState(state);
+}
+
+// Send progress updates to miniplayer
+function sendProgressToMiniplayer() {
+    if (!isMiniplayerOpen) return;
+
+    const data = {
+        currentTime: currentAudio.currentTime || 0,
+        duration: currentAudio.duration || 0
+    };
+    window.electronAPI.sendProgressUpdate(data);
+}
+
+// Hook into existing audio events to sync miniplayer
+const originalPlayHandler = currentAudio.onplay;
+currentAudio.addEventListener('play', () => {
+    sendPlaybackStateToMiniplayer();
+});
+
+currentAudio.addEventListener('pause', () => {
+    sendPlaybackStateToMiniplayer();
+});
+
+// Add timeupdate hook for miniplayer progress
+currentAudio.addEventListener('timeupdate', () => {
+    sendProgressToMiniplayer();
+});
+
+// Check miniplayer status on init
+(async () => {
+    const isOpen = await window.electronAPI.isMiniplayerOpen();
+    isMiniplayerOpen = isOpen;
+    if (isOpen) {
+        miniplayerBtn?.classList.add('text-accent-primary');
+        miniplayerBtn?.classList.remove('text-text-muted');
+    }
+})();
+
 console.log('Riff renderer initialized');
+

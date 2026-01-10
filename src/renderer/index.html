@@ -325,16 +325,32 @@
                 </div>
             </div>
 
-            <!-- Volume -->
-            <div class="volume-controls w-[30%] flex justify-end items-center gap-3 group">
-                <svg class="w-5 h-5 text-text-muted" fill="none" stroke="currentColor" stroke-width="2"
-                    stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
-                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
-                    <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
-                </svg>
-                <div class="volume-slider w-24 h-1.5 bg-white/10 rounded-full cursor-pointer relative overflow-hidden">
+            <!-- Right Controls: Miniplayer & Volume -->
+            <div class="player-right w-[30%] flex justify-end items-center gap-4">
+                <!-- Miniplayer Toggle Button -->
+                <button id="miniplayer-btn"
+                    class="text-text-muted hover:text-white transition-colors p-2 rounded-full hover:bg-white/5"
+                    title="Open Miniplayer">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                        <line x1="8" y1="21" x2="16" y2="21"></line>
+                        <line x1="12" y1="17" x2="12" y2="21"></line>
+                    </svg>
+                </button>
+
+                <!-- Volume Controls -->
+                <div class="volume-controls flex items-center gap-3 group">
+                    <svg class="w-5 h-5 text-text-muted cursor-pointer" fill="none" stroke="currentColor"
+                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                        <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                        <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                    </svg>
                     <div
-                        class="volume-fill absolute top-0 left-0 h-full bg-text-muted rounded-full w-[80%] group-hover:bg-white transition-colors">
+                        class="volume-slider w-24 h-1.5 bg-white/10 rounded-full cursor-pointer relative overflow-hidden">
+                        <div
+                            class="volume-fill absolute top-0 left-0 h-full bg-text-muted rounded-full w-[80%] group-hover:bg-white transition-colors">
+                        </div>
                     </div>
                 </div>
             </div>

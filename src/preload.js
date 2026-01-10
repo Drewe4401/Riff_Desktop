@@ -6,6 +6,40 @@ contextBridge.exposeInMainWorld('electronAPI', {
     maximize: () => ipcRenderer.send('window-maximize'),
     close: () => ipcRenderer.send('window-close'),
 
+    // Miniplayer Controls
+    openMiniplayer: () => ipcRenderer.send('open-miniplayer'),
+    closeMiniplayer: () => ipcRenderer.send('close-miniplayer'),
+    closeApp: () => ipcRenderer.send('close-app'),
+    expandToMain: () => ipcRenderer.send('expand-to-main'),
+    miniplayerControl: (action) => ipcRenderer.send('miniplayer-control', action),
+    miniplayerSeek: (percent) => ipcRenderer.send('miniplayer-seek', percent),
+    requestPlaybackState: () => ipcRenderer.send('request-playback-state'),
+    sendPlaybackState: (state) => ipcRenderer.send('send-playback-state', state),
+    sendProgressUpdate: (data) => ipcRenderer.send('send-progress-update', data),
+    isMiniplayerOpen: () => ipcRenderer.invoke('is-miniplayer-open'),
+
+    // Miniplayer listeners (for miniplayer window)
+    onPlaybackState: (callback) => {
+        ipcRenderer.on('playback-state', (event, state) => callback(state));
+    },
+    onProgressUpdate: (callback) => {
+        ipcRenderer.on('progress-update', (event, data) => callback(data));
+    },
+
+    // Main window listeners (for receiving miniplayer commands)
+    onMiniplayerControl: (callback) => {
+        ipcRenderer.on('miniplayer-control', (event, action) => callback(action));
+    },
+    onMiniplayerSeek: (callback) => {
+        ipcRenderer.on('miniplayer-seek', (event, percent) => callback(percent));
+    },
+    onRequestPlaybackState: (callback) => {
+        ipcRenderer.on('request-playback-state', () => callback());
+    },
+    onMiniplayerClosed: (callback) => {
+        ipcRenderer.on('miniplayer-closed', () => callback());
+    },
+
     // Spotify
     search: (query) => ipcRenderer.invoke('spotify-search', query),
     getTrack: (trackId) => ipcRenderer.invoke('spotify-get-track', trackId),
@@ -38,3 +72,4 @@ contextBridge.exposeInMainWorld('electronAPI', {
         ipcRenderer.removeAllListeners('download-progress');
     }
 });
+

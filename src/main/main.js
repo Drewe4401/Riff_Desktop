@@ -1,11 +1,131 @@
-const { app, BrowserWindow, ipcMain, dialog } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, screen } = require('electron');
 require('dotenv').config();
 const path = require('path');
+const fs = require('fs');
 const spotifyService = require('./spotify');
 const playlistManager = require('./playlistManager');
 const downloadManager = require('./downloadManager');
 
 let mainWindow = null;
+let miniplayerWindow = null;
+
+// ==================== MINIPLAYER POSITION PERSISTENCE ====================
+const getMiniplayerSettingsPath = () => {
+    return path.join(app.getPath('userData'), 'miniplayer-settings.json');
+};
+
+const saveMiniplayerPosition = () => {
+    if (!miniplayerWindow || miniplayerWindow.isDestroyed()) return;
+
+    try {
+        const bounds = miniplayerWindow.getBounds();
+        const settings = { x: bounds.x, y: bounds.y };
+        fs.writeFileSync(getMiniplayerSettingsPath(), JSON.stringify(settings, null, 2));
+    } catch (error) {
+        console.error('Error saving miniplayer position:', error);
+    }
+};
+
+const loadMiniplayerPosition = () => {
+    try {
+        const settingsPath = getMiniplayerSettingsPath();
+        if (fs.existsSync(settingsPath)) {
+            const data = fs.readFileSync(settingsPath, 'utf8');
+            return JSON.parse(data);
+        }
+    } catch (error) {
+        console.error('Error loading miniplayer position:', error);
+    }
+    return null;
+};
+
+// ==================== MINIPLAYER WINDOW ====================
+const createMiniplayerWindow = () => {
+    if (miniplayerWindow) {
+        miniplayerWindow.focus();
+        return;
+    }
+
+    // Get the primary display's work area
+    const primaryDisplay = screen.getPrimaryDisplay();
+    const { width: screenWidth, height: screenHeight } = primaryDisplay.workAreaSize;
+
+    // Default position (bottom-right corner)
+    const miniWidth = 340;
+    const miniHeight = 190;
+    let xPos = screenWidth - miniWidth - 20;
+    let yPos = screenHeight - miniHeight - 20;
+
+    // Load saved position if available
+    const savedPosition = loadMiniplayerPosition();
+    if (savedPosition) {
+        // Validate position is within screen bounds
+        if (savedPosition.x >= 0 && savedPosition.x < screenWidth - 50 &&
+            savedPosition.y >= 0 && savedPosition.y < screenHeight - 50) {
+            xPos = savedPosition.x;
+            yPos = savedPosition.y;
+        }
+    }
+
+    miniplayerWindow = new BrowserWindow({
+        width: miniWidth,
+        height: miniHeight,
+        x: xPos,
+        y: yPos,
+        frame: false,
+        transparent: false,
+        resizable: false,
+        alwaysOnTop: true,
+        skipTaskbar: false,
+        backgroundColor: '#0c0c0c',
+        icon: path.join(__dirname, '../../build/icon.png'),
+        webPreferences: {
+            preload: path.join(__dirname, '../preload.js'),
+            nodeIntegration: false,
+            contextIsolation: true,
+            sandbox: false
+        }
+    });
+
+    miniplayerWindow.loadFile(path.join(__dirname, '../renderer/miniplayer.html'));
+
+    // Save position when window is moved
+    miniplayerWindow.on('moved', () => {
+        saveMiniplayerPosition();
+    });
+
+    // Save position before closing
+    miniplayerWindow.on('close', () => {
+        saveMiniplayerPosition();
+    });
+
+    miniplayerWindow.on('closed', () => {
+        miniplayerWindow = null;
+        // Show main window when miniplayer is closed and notify
+        if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.show();
+            mainWindow.focus();
+            mainWindow.webContents.send('miniplayer-closed');
+        }
+    });
+
+    // Hide main window when miniplayer opens
+    if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.hide();
+    }
+};
+
+const closeMiniplayerWindow = (showMain = true) => {
+    if (miniplayerWindow) {
+        miniplayerWindow.close();
+        miniplayerWindow = null;
+    }
+    // Show main window if requested
+    if (showMain && mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.show();
+        mainWindow.focus();
+    }
+};
 
 const createWindow = () => {
     mainWindow = new BrowserWindow({
@@ -40,6 +160,77 @@ const createWindow = () => {
         }
     });
     ipcMain.on('window-close', () => mainWindow.close());
+
+    // ==================== MINIPLAYER IPC ====================
+
+    // Open miniplayer from main window
+    ipcMain.on('open-miniplayer', () => {
+        createMiniplayerWindow();
+    });
+
+    // Close miniplayer
+    ipcMain.on('close-miniplayer', () => {
+        closeMiniplayerWindow();
+    });
+
+    // Close entire app (from miniplayer)
+    ipcMain.on('close-app', () => {
+        app.quit();
+    });
+
+    // Expand to main window (from miniplayer)
+    ipcMain.on('expand-to-main', () => {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.show();
+            mainWindow.focus();
+        }
+        // Close miniplayer without trying to show main again (already shown above)
+        if (miniplayerWindow) {
+            miniplayerWindow.removeAllListeners('closed'); // Prevent double-show
+            miniplayerWindow.close();
+            miniplayerWindow = null;
+        }
+    });
+
+    // Miniplayer control commands (forwarded to main window)
+    ipcMain.on('miniplayer-control', (event, action) => {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.webContents.send('miniplayer-control', action);
+        }
+    });
+
+    // Miniplayer seek (forwarded to main window)
+    ipcMain.on('miniplayer-seek', (event, percent) => {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.webContents.send('miniplayer-seek', percent);
+        }
+    });
+
+    // Request playback state from main window (called by miniplayer on init)
+    ipcMain.on('request-playback-state', () => {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.webContents.send('request-playback-state');
+        }
+    });
+
+    // Send playback state to miniplayer
+    ipcMain.on('send-playback-state', (event, state) => {
+        if (miniplayerWindow && !miniplayerWindow.isDestroyed()) {
+            miniplayerWindow.webContents.send('playback-state', state);
+        }
+    });
+
+    // Send progress update to miniplayer
+    ipcMain.on('send-progress-update', (event, data) => {
+        if (miniplayerWindow && !miniplayerWindow.isDestroyed()) {
+            miniplayerWindow.webContents.send('progress-update', data);
+        }
+    });
+
+    // Check if miniplayer is open
+    ipcMain.handle('is-miniplayer-open', () => {
+        return miniplayerWindow !== null && !miniplayerWindow.isDestroyed();
+    });
 
     // ==================== SPOTIFY IPC ====================
 
