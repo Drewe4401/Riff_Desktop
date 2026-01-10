@@ -561,9 +561,16 @@ let currentTrack = null;
 let currentQueue = [];
 let currentQueueIndex = -1;
 
+// Shuffle and Loop state
+let isShuffleEnabled = false;
+let loopMode = 'off'; // 'off', 'all', 'one'
+let originalQueue = []; // Store original queue order for un-shuffling
+
 const playPauseBtn = document.getElementById('play-pause-btn');
 const prevBtn = document.getElementById('prev-btn');
 const nextBtn = document.getElementById('next-btn');
+const shuffleBtn = document.getElementById('shuffle-btn');
+const loopBtn = document.getElementById('loop-btn');
 const playIcon = document.getElementById('play-icon');
 const pauseIcon = document.getElementById('pause-icon');
 const npTitle = document.getElementById('np-title');
@@ -579,6 +586,111 @@ playPauseBtn.addEventListener('click', togglePlay);
 // Previous/Next track buttons
 prevBtn?.addEventListener('click', playPreviousTrack);
 nextBtn?.addEventListener('click', playNextTrack);
+
+// Shuffle button
+shuffleBtn?.addEventListener('click', toggleShuffle);
+
+// Loop button
+loopBtn?.addEventListener('click', toggleLoop);
+
+// Toggle shuffle mode
+function toggleShuffle() {
+    isShuffleEnabled = !isShuffleEnabled;
+    updateShuffleButton();
+
+    if (isShuffleEnabled && currentQueue.length > 0) {
+        // Save original queue before shuffling
+        originalQueue = [...currentQueue];
+        // Shuffle the queue (keeping current track in place)
+        shuffleQueue();
+        showToast('Shuffle enabled', 'info');
+    } else if (!isShuffleEnabled && originalQueue.length > 0) {
+        // Restore original queue order
+        const currentTrackInQueue = currentQueue[currentQueueIndex];
+        currentQueue = [...originalQueue];
+        // Find current track in restored queue
+        if (currentTrackInQueue) {
+            currentQueueIndex = currentQueue.findIndex(t => t.id === currentTrackInQueue.id);
+            if (currentQueueIndex === -1) currentQueueIndex = 0;
+        }
+        originalQueue = [];
+        showToast('Shuffle disabled', 'info');
+    }
+}
+
+// Shuffle the queue while keeping current track at current position
+function shuffleQueue() {
+    if (currentQueue.length <= 1) return;
+
+    const currentTrackInQueue = currentQueue[currentQueueIndex];
+
+    // Remove current track from queue
+    const remainingTracks = currentQueue.filter((_, index) => index !== currentQueueIndex);
+
+    // Fisher-Yates shuffle for remaining tracks
+    for (let i = remainingTracks.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [remainingTracks[i], remainingTracks[j]] = [remainingTracks[j], remainingTracks[i]];
+    }
+
+    // Put current track at position 0, rest follows shuffled
+    currentQueue = [currentTrackInQueue, ...remainingTracks];
+    currentQueueIndex = 0;
+}
+
+// Update shuffle button visual state
+function updateShuffleButton() {
+    if (!shuffleBtn) return;
+
+    if (isShuffleEnabled) {
+        shuffleBtn.classList.add('active');
+        shuffleBtn.classList.remove('text-text-muted');
+        shuffleBtn.classList.add('text-accent-primary');
+    } else {
+        shuffleBtn.classList.remove('active');
+        shuffleBtn.classList.add('text-text-muted');
+        shuffleBtn.classList.remove('text-accent-primary');
+    }
+}
+
+// Toggle loop mode: off -> all -> one -> off
+function toggleLoop() {
+    if (loopMode === 'off') {
+        loopMode = 'all';
+        showToast('Repeat all', 'info');
+    } else if (loopMode === 'all') {
+        loopMode = 'one';
+        showToast('Repeat one', 'info');
+    } else {
+        loopMode = 'off';
+        showToast('Repeat off', 'info');
+    }
+    updateLoopButton();
+}
+
+// Update loop button visual state
+function updateLoopButton() {
+    if (!loopBtn) return;
+
+    const loopOneIndicator = loopBtn.querySelector('.loop-one-indicator');
+
+    if (loopMode === 'off') {
+        loopBtn.classList.remove('active');
+        loopBtn.classList.add('text-text-muted');
+        loopBtn.classList.remove('text-accent-primary');
+        if (loopOneIndicator) loopOneIndicator.classList.add('hidden');
+    } else if (loopMode === 'all') {
+        loopBtn.classList.add('active');
+        loopBtn.classList.remove('text-text-muted');
+        loopBtn.classList.add('text-accent-primary');
+        if (loopOneIndicator) loopOneIndicator.classList.add('hidden');
+    } else if (loopMode === 'one') {
+        loopBtn.classList.add('active');
+        loopBtn.classList.remove('text-text-muted');
+        loopBtn.classList.add('text-accent-primary');
+        if (loopOneIndicator) loopOneIndicator.classList.remove('hidden');
+    }
+}
 
 function playNextTrack() {
     if (currentQueue.length === 0) return;
@@ -648,6 +760,12 @@ async function playTrack(track, queue = null, queueIndex = -1) {
         currentQueue = queue;
         currentQueueIndex = queueIndex >= 0 ? queueIndex : queue.findIndex(t => t.id === track.id);
         if (currentQueueIndex === -1) currentQueueIndex = 0;
+
+        // If shuffle is enabled, save original and shuffle the queue
+        if (isShuffleEnabled) {
+            originalQueue = [...currentQueue];
+            shuffleQueue();
+        }
     }
 
     // Check if downloaded first
@@ -768,9 +886,25 @@ currentAudio.addEventListener('ended', () => {
     progressFill.style.width = '0%';
     timeCurrent.textContent = '0:00';
 
+    // Handle loop modes
+    if (loopMode === 'one') {
+        // Repeat current track
+        currentAudio.currentTime = 0;
+        currentAudio.play();
+        return;
+    }
+
     // Auto-play next track if in queue
-    if (currentQueue.length > 0 && currentQueueIndex < currentQueue.length - 1) {
-        playNextTrack();
+    if (currentQueue.length > 0) {
+        if (currentQueueIndex < currentQueue.length - 1) {
+            // More tracks in queue
+            playNextTrack();
+        } else if (loopMode === 'all') {
+            // At end of queue with repeat-all enabled, go back to start
+            currentQueueIndex = 0;
+            playTrackFromQueue(currentQueue[currentQueueIndex]);
+        }
+        // If loopMode is 'off' and at end, just stop (do nothing)
     }
 });
 

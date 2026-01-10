@@ -383,6 +383,31 @@
     .library-empty p {
         @apply text-text-muted mb-6;
     }
+
+    /* ==================== PLAYER CONTROL BUTTONS ==================== */
+    .player-control-btn {
+        @apply relative flex items-center justify-center;
+        @apply transition-all duration-200;
+    }
+
+    .player-control-btn.active {
+        @apply text-accent-primary;
+    }
+
+    .player-control-btn.active::after {
+        content: '';
+        @apply absolute -bottom-1 left-1/2 -translate-x-1/2;
+        @apply w-1 h-1 rounded-full bg-accent-primary;
+    }
+
+    .player-control-btn:hover {
+        @apply scale-110;
+    }
+
+    .loop-one-indicator {
+        @apply absolute -bottom-0.5 left-1/2 -translate-x-1/2;
+        @apply text-accent-primary font-bold;
+    }
 }
 
 @layer utilities {

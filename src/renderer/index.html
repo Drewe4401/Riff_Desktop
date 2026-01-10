@@ -261,7 +261,20 @@
 
             <!-- Player Controls -->
             <div class="player-center flex flex-col items-center w-[40%] gap-2">
-                <div class="player-controls flex items-center gap-6">
+                <div class="player-controls flex items-center gap-4">
+                    <!-- Shuffle Button -->
+                    <button id="shuffle-btn"
+                        class="player-control-btn text-text-muted hover:text-white transition-all duration-200 p-2 rounded-full hover:bg-white/5"
+                        title="Shuffle">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="16 3 21 3 21 8"></polyline>
+                            <line x1="4" y1="20" x2="21" y2="3"></line>
+                            <polyline points="21 16 21 21 16 21"></polyline>
+                            <line x1="15" y1="15" x2="21" y2="21"></line>
+                            <line x1="4" y1="4" x2="9" y2="9"></line>
+                        </svg>
+                    </button>
                     <button id="prev-btn"
                         class="text-text-muted hover:text-white transition-colors p-2 rounded-full hover:bg-white/5">
                         <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
@@ -283,6 +296,20 @@
                         <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                             <path d="M5 4l10 8-10 8V4zM19 5h-2v14h2V5z" />
                         </svg>
+                    </button>
+                    <!-- Loop Button -->
+                    <button id="loop-btn"
+                        class="player-control-btn text-text-muted hover:text-white transition-all duration-200 p-2 rounded-full hover:bg-white/5"
+                        title="Repeat">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="17 1 21 5 17 9"></polyline>
+                            <path d="M3 11V9a4 4 0 0 1 4-4h14"></path>
+                            <polyline points="7 23 3 19 7 15"></polyline>
+                            <path d="M21 13v2a4 4 0 0 1-4 4H3"></path>
+                        </svg>
+                        <!-- Hidden "1" indicator for loop-one mode -->
+                        <span class="loop-one-indicator hidden absolute text-[8px] font-bold">1</span>
                     </button>
                 </div>
                 <div
