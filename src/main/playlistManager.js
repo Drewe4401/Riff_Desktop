@@ -76,7 +76,7 @@ class PlaylistManager {
             createdAt: p.createdAt,
             isDefault: p.isDefault || false,
             customCover: p.customCover || null,
-            firstTrackImage: p.tracks.length > 0 ? p.tracks[0].album?.images?.[0]?.url : null
+            firstTrackImage: p.tracks.length > 0 ? (p.tracks[0].album?.images?.[0]?.url || p.tracks[0].thumbnailUrl) : null
         }));
     }
 
@@ -167,6 +167,22 @@ class PlaylistManager {
         playlist.tracks.splice(index, 1);
         this.savePlaylists();
         return { success: true };
+    }
+
+    removeTrackFromAllPlaylists(trackId) {
+        let removedFromAny = false;
+        Object.values(this.playlists).forEach(playlist => {
+            const index = playlist.tracks.findIndex(t => t.id === trackId);
+            if (index !== -1) {
+                playlist.tracks.splice(index, 1);
+                removedFromAny = true;
+            }
+        });
+
+        if (removedFromAny) {
+            this.savePlaylists();
+        }
+        return { success: true, removed: removedFromAny };
     }
 
     isTrackInPlaylist(playlistId, trackId) {

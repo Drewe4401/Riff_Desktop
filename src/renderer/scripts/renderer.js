@@ -216,7 +216,23 @@ function createTrackCard(track) {
     card.className = 'track-card group';
     card.dataset.trackId = track.id;
 
-    const imageUrl = track.album.images[0]?.url || 'assets/placeholder.png';
+    // Handle cover art
+    let imageUrl = 'assets/placeholder.png';
+    if (track.album?.images?.length > 0) {
+        imageUrl = track.album.images[0].url;
+    } else if (track.thumbnailUrl) {
+        imageUrl = track.thumbnailUrl;
+    }
+
+    // Handle duration
+    let duration = track.duration || '0:00';
+    if (!track.duration && track.duration_ms) {
+        const totalSeconds = Math.floor(track.duration_ms / 1000);
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = totalSeconds % 60;
+        duration = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    }
+
     const isDownloaded = track.isDownloaded;
     const isLiked = track.isLiked;
 
@@ -259,7 +275,7 @@ function createTrackCard(track) {
             <div class="track-name" title="${track.name}">${track.name}</div>
             <div class="track-artist" title="${track.artistNames}">${track.artistNames}</div>
             <div class="track-meta">
-                <span class="track-duration">${track.duration}</span>
+                <span class="track-duration">${duration}</span>
             </div>
         </div>
         <div class="download-progress hidden">
@@ -805,7 +821,7 @@ async function playTrack(track, queue = null, queueIndex = -1) {
     npTitle.textContent = track.name || 'Unknown Track';
     npArtist.textContent = track.artistNames || track.artists?.map(a => a.name).join(', ') || 'Unknown Artist';
 
-    const imageUrl = track.album?.images?.[0]?.url || '';
+    const imageUrl = track.album?.images?.[0]?.url || track.thumbnailUrl || '';
     if (imageUrl) {
         npImage.style.backgroundImage = `url('${imageUrl}')`;
     } else {
@@ -855,7 +871,7 @@ async function playTrackFromQueue(track) {
     npTitle.textContent = track.name || 'Unknown Track';
     npArtist.textContent = track.artistNames || track.artists?.map(a => a.name).join(', ') || 'Unknown Artist';
 
-    const imageUrl = track.album?.images?.[0]?.url || '';
+    const imageUrl = track.album?.images?.[0]?.url || track.thumbnailUrl || '';
     if (imageUrl) {
         npImage.style.backgroundImage = `url('${imageUrl}')`;
     } else {
@@ -1337,6 +1353,11 @@ function renderPlaylistTracks(tracks) {
             playTrack(tracks[index], tracks, index);
         });
 
+        // Context Menu
+        row.addEventListener('contextmenu', (e) => {
+            showContextMenu(e, tracks[index]);
+        });
+
         // Remove from playlist button
         row.querySelector('.remove-track-btn')?.addEventListener('click', async (e) => {
             e.stopPropagation();
@@ -1346,8 +1367,22 @@ function renderPlaylistTracks(tracks) {
 }
 
 function createTrackRow(track, index) {
-    const imageUrl = track.album?.images?.[0]?.url || '';
-    const duration = track.duration || '0:00';
+    // Handle cover art - check album images first, then top-level thumbnail
+    let imageUrl = '';
+    if (track.album?.images?.length > 0) {
+        imageUrl = track.album.images[0].url;
+    } else if (track.thumbnailUrl) {
+        imageUrl = track.thumbnailUrl;
+    }
+
+    // Handle duration - format ms if string not provided
+    let duration = track.duration || '0:00';
+    if (!track.duration && track.duration_ms) {
+        const totalSeconds = Math.floor(track.duration_ms / 1000);
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = totalSeconds % 60;
+        duration = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    }
 
     return `
         <div class="track-row" data-track-id="${track.id}">
@@ -1378,7 +1413,15 @@ function createTrackRow(track, index) {
 
 async function removeTrackFromCurrentPlaylist(trackId) {
     if (currentPlaylistId === 'downloads') {
-        if (!confirm('Are you sure you want to delete this download?')) return;
+        const confirmed = await showConfirmDialog(
+            'Delete Download',
+            'Are you sure you want to delete this download? This action cannot be undone.',
+            'Delete',
+            'Cancel',
+            'danger'
+        );
+
+        if (!confirmed) return;
 
         try {
             const result = await window.electronAPI.deleteDownload(trackId);
@@ -1426,7 +1469,15 @@ backToLibraryBtn?.addEventListener('click', () => {
 deletePlaylistBtn?.addEventListener('click', async () => {
     if (!currentPlaylistId || currentPlaylistId === 'liked-songs') return;
 
-    if (confirm('Are you sure you want to delete this playlist?')) {
+    const confirmed = await showConfirmDialog(
+        'Delete Playlist',
+        'Are you sure you want to delete this playlist? This action cannot be undone.',
+        'Delete',
+        'Cancel',
+        'danger'
+    );
+
+    if (confirmed) {
         try {
             const result = await window.electronAPI.deletePlaylist(currentPlaylistId);
             if (result.success) {
@@ -1700,6 +1751,552 @@ currentAudio.addEventListener('timeupdate', () => {
         miniplayerBtn?.classList.remove('text-text-muted');
     }
 })();
+
+// ==================== CONFIRMATION DIALOG ====================
+function showConfirmDialog(title, message, confirmText = 'Confirm', cancelText = 'Cancel', type = 'warning') {
+    return new Promise((resolve) => {
+        const modal = document.createElement('div');
+        modal.className = 'confirm-dialog-overlay';
+        modal.id = 'confirm-dialog-modal';
+
+        const iconColor = type === 'danger' ? '#ef4444' : '#f59e0b';
+        const iconBg = type === 'danger' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(245, 158, 11, 0.15)';
+
+        modal.innerHTML = `
+            <div class="confirm-dialog-modal">
+                <!-- Animated Background Glow -->
+                <div class="confirm-dialog-glow" style="background: radial-gradient(circle, ${iconColor}15 0%, transparent 70%);"></div>
+                
+                <!-- Icon -->
+                <div class="confirm-dialog-icon-container">
+                    <div class="confirm-dialog-icon-wrapper" style="background: ${iconBg}; border-color: ${iconColor}40;">
+                        ${type === 'danger'
+                ? `<svg class="confirm-dialog-icon" style="color: ${iconColor};" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                               </svg>`
+                : `<svg class="confirm-dialog-icon" style="color: ${iconColor};" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                               </svg>`
+            }
+                        <div class="confirm-dialog-icon-pulse" style="background: ${iconColor}20;"></div>
+                    </div>
+                </div>
+
+                <!-- Content -->
+                <div class="confirm-dialog-content">
+                    <h3 class="confirm-dialog-title">${title}</h3>
+                    <p class="confirm-dialog-message">${message}</p>
+                </div>
+
+                <!-- Actions -->
+                <div class="confirm-dialog-actions">
+                    <button id="confirm-dialog-cancel-btn" class="confirm-dialog-btn confirm-dialog-btn-secondary">
+                        <span>${cancelText}</span>
+                    </button>
+                    <button id="confirm-dialog-confirm-btn" class="confirm-dialog-btn confirm-dialog-btn-primary" style="background: linear-gradient(135deg, ${iconColor} 0%, ${type === 'danger' ? '#dc2626' : '#d97706'} 100%);">
+                        <span>${confirmText}</span>
+                        <div class="confirm-dialog-btn-ripple"></div>
+                    </button>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+
+        // Trigger entrance animations
+        requestAnimationFrame(() => {
+            modal.classList.add('confirm-dialog-overlay-enter');
+            const modalContent = modal.querySelector('.confirm-dialog-modal');
+            modalContent.classList.add('confirm-dialog-modal-enter');
+        });
+
+        const cancelBtn = document.getElementById('confirm-dialog-cancel-btn');
+        const confirmBtn = document.getElementById('confirm-dialog-confirm-btn');
+
+        // Handle keyboard
+        const handleKeydown = (e) => {
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                closeModal(false);
+            } else if (e.key === 'Enter') {
+                e.preventDefault();
+                confirmBtn.click();
+            }
+        };
+
+        document.addEventListener('keydown', handleKeydown);
+
+        // Close modal with exit animation
+        const closeModal = (result) => {
+            document.removeEventListener('keydown', handleKeydown);
+            modal.classList.add('confirm-dialog-overlay-exit');
+            const modalContent = modal.querySelector('.confirm-dialog-modal');
+            modalContent.classList.add('confirm-dialog-modal-exit');
+
+            setTimeout(() => {
+                modal.remove();
+                resolve(result);
+            }, 300);
+        };
+
+        // Ripple effect for buttons
+        const createRipple = (e, button) => {
+            const ripple = button.querySelector('.confirm-dialog-btn-ripple');
+            if (!ripple) return;
+
+            const rect = button.getBoundingClientRect();
+            const size = Math.max(rect.width, rect.height);
+            const x = e.clientX - rect.left - size / 2;
+            const y = e.clientY - rect.top - size / 2;
+
+            ripple.style.width = ripple.style.height = size + 'px';
+            ripple.style.left = x + 'px';
+            ripple.style.top = y + 'px';
+            ripple.classList.add('confirm-dialog-ripple-active');
+
+            setTimeout(() => {
+                ripple.classList.remove('confirm-dialog-ripple-active');
+            }, 600);
+        };
+
+        cancelBtn.addEventListener('click', (e) => {
+            createRipple(e, cancelBtn);
+            setTimeout(() => closeModal(false), 100);
+        });
+
+        confirmBtn.addEventListener('click', (e) => {
+            createRipple(e, confirmBtn);
+            setTimeout(() => closeModal(true), 100);
+        });
+
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) closeModal(false);
+        });
+    });
+}
+
+// ==================== YOUTUBE IMPORT ====================
+const importYouTubeBtn = document.getElementById('import-youtube-btn');
+
+importYouTubeBtn?.addEventListener('click', () => {
+    showYouTubeImportModal();
+});
+
+function showYouTubeImportModal() {
+    const modal = document.createElement('div');
+    modal.className = 'youtube-import-overlay';
+    modal.id = 'youtube-import-modal';
+
+    modal.innerHTML = `
+        <div class="youtube-import-modal">
+            <!-- Animated Background Glow -->
+            <div class="youtube-modal-glow"></div>
+            
+            <!-- Header with Icon Animation -->
+            <div class="youtube-modal-header">
+                <div class="youtube-icon-container">
+                    <div class="youtube-icon-wrapper">
+                        <svg class="youtube-icon" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z"/>
+                        </svg>
+                        <div class="youtube-icon-shine"></div>
+                    </div>
+                </div>
+                <div class="youtube-modal-title-group">
+                    <h3 class="youtube-modal-title">Import from YouTube</h3>
+                    <p class="youtube-modal-subtitle">Paste a YouTube link to add music to your library</p>
+                </div>
+            </div>
+            
+            <!-- Input Field with Animation -->
+            <div class="youtube-input-wrapper">
+                <div class="youtube-input-container">
+                    <svg class="youtube-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
+                    </svg>
+                    <input type="text" id="youtube-url-input" 
+                        placeholder="https://youtube.com/watch?v=..." 
+                        class="youtube-url-input">
+                    <div class="youtube-input-glow"></div>
+                </div>
+            </div>
+            
+            <!-- Import Status with Progress Animation -->
+            <div id="import-status" class="youtube-import-status hidden">
+                <div class="youtube-status-content">
+                    <div class="youtube-spinner-container">
+                        <div class="youtube-spinner">
+                            <div class="youtube-spinner-ring"></div>
+                            <div class="youtube-spinner-ring"></div>
+                            <div class="youtube-spinner-ring"></div>
+                        </div>
+                    </div>
+                    <div class="youtube-progress-content">
+                        <p id="import-status-text" class="youtube-status-text">Fetching video info...</p>
+                        <div class="youtube-progress-container">
+                            <div id="import-progress-bar" class="youtube-progress-bar">
+                                <div class="youtube-progress-shimmer"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Action Buttons -->
+            <div class="youtube-modal-actions">
+                <button id="cancel-import-btn" class="youtube-btn youtube-btn-secondary">
+                    <span>Cancel</span>
+                </button>
+                <button id="confirm-import-btn" class="youtube-btn youtube-btn-primary">
+                    <svg class="youtube-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                    </svg>
+                    <span>Import</span>
+                    <div class="youtube-btn-ripple"></div>
+                </button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    // Trigger entrance animations
+    requestAnimationFrame(() => {
+        modal.classList.add('youtube-overlay-enter');
+        const modalContent = modal.querySelector('.youtube-import-modal');
+        modalContent.classList.add('youtube-modal-enter');
+    });
+
+    const urlInput = document.getElementById('youtube-url-input');
+    const cancelBtn = document.getElementById('cancel-import-btn');
+    const confirmBtn = document.getElementById('confirm-import-btn');
+    const importStatus = document.getElementById('import-status');
+    const importStatusText = document.getElementById('import-status-text');
+    const importProgressBar = document.getElementById('import-progress-bar');
+
+    // Ensure input is selectable and focusable
+    if (urlInput) {
+        urlInput.style.userSelect = 'text';
+        urlInput.style.webkitUserSelect = 'text';
+        urlInput.style.MozUserSelect = 'text';
+        urlInput.style.cursor = 'text';
+        urlInput.setAttribute('tabindex', '0');
+        urlInput.readOnly = false;
+        urlInput.disabled = false;
+    }
+
+    // Focus input with animation delay
+    setTimeout(() => {
+        if (urlInput) {
+            urlInput.focus();
+            // Also try to select any existing text
+            if (urlInput.value) {
+                urlInput.select();
+            }
+        }
+    }, 400);
+
+    // Close modal with exit animation
+    const closeModal = () => {
+        modal.classList.add('youtube-overlay-exit');
+        const modalContent = modal.querySelector('.youtube-import-modal');
+        modalContent.classList.add('youtube-modal-exit');
+
+        setTimeout(() => {
+            modal.remove();
+            window.electronAPI.removeYouTubeImportListener();
+        }, 300);
+    };
+
+    // Ripple effect for buttons
+    const createRipple = (e, button) => {
+        const ripple = button.querySelector('.youtube-btn-ripple');
+        if (!ripple) return;
+
+        const rect = button.getBoundingClientRect();
+        const size = Math.max(rect.width, rect.height);
+        const x = e.clientX - rect.left - size / 2;
+        const y = e.clientY - rect.top - size / 2;
+
+        ripple.style.width = ripple.style.height = size + 'px';
+        ripple.style.left = x + 'px';
+        ripple.style.top = y + 'px';
+        ripple.classList.add('youtube-ripple-active');
+
+        setTimeout(() => {
+            ripple.classList.remove('youtube-ripple-active');
+        }, 600);
+    };
+
+    cancelBtn.addEventListener('click', (e) => {
+        createRipple(e, cancelBtn);
+        setTimeout(closeModal, 100);
+    });
+
+    confirmBtn.addEventListener('click', (e) => {
+        createRipple(e, confirmBtn);
+    });
+
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeModal();
+    });
+
+    // Input animations
+    urlInput.addEventListener('focus', () => {
+        urlInput.parentElement.classList.add('youtube-input-focused');
+    });
+
+    urlInput.addEventListener('blur', () => {
+        if (!urlInput.value) {
+            urlInput.parentElement.classList.remove('youtube-input-focused');
+        }
+    });
+
+    // Ensure clicking the container focuses the input
+    const inputContainer = urlInput.closest('.youtube-input-container');
+    if (inputContainer) {
+        inputContainer.addEventListener('click', (e) => {
+            // Only focus if clicking on the container itself, not on the input
+            if (e.target === inputContainer || e.target.classList.contains('youtube-input-icon')) {
+                e.preventDefault();
+                e.stopPropagation();
+                urlInput.focus();
+                urlInput.select();
+            }
+        }, true); // Use capture phase to ensure we get the event
+    }
+
+    // Allow paste on the input
+    urlInput.addEventListener('paste', (e) => {
+        // Allow default paste behavior
+    }, true);
+
+    // Handle import
+    const handleImport = async () => {
+        const url = urlInput.value.trim();
+        if (!url) {
+            // Shake animation for empty input
+            urlInput.parentElement.classList.add('youtube-input-error');
+            setTimeout(() => {
+                urlInput.parentElement.classList.remove('youtube-input-error');
+            }, 600);
+            showToast('Please enter a YouTube URL', 'warning');
+            return;
+        }
+
+        // Validate URL format
+        const youtubeRegex = /^(https?:\/\/)?(www\.)?(youtube\.com\/(watch\?v=|shorts\/)|youtu\.be\/)/;
+        if (!youtubeRegex.test(url)) {
+            urlInput.parentElement.classList.add('youtube-input-error');
+            setTimeout(() => {
+                urlInput.parentElement.classList.remove('youtube-input-error');
+            }, 600);
+            showToast('Invalid YouTube URL', 'error');
+            return;
+        }
+
+        // Show progress with animation
+        importStatus.classList.remove('hidden');
+        requestAnimationFrame(() => {
+            importStatus.classList.add('youtube-status-visible');
+        });
+
+        confirmBtn.disabled = true;
+        confirmBtn.classList.add('youtube-btn-loading');
+        urlInput.disabled = true;
+        urlInput.parentElement.classList.add('youtube-input-disabled');
+
+        // Listen for progress updates
+        window.electronAPI.onYouTubeImportProgress((progress) => {
+            if (progress.status === 'fetching_info') {
+                importStatusText.textContent = 'Fetching video info...';
+                importProgressBar.style.width = '15%';
+                importProgressBar.classList.add('youtube-progress-animate');
+            } else if (progress.status === 'downloading') {
+                importStatusText.textContent = `Downloading: ${progress.title || 'Track'}`;
+                const progressPercent = Math.max(15, Math.min(95, progress.progress));
+                importProgressBar.style.width = `${progressPercent}%`;
+            } else if (progress.status === 'complete') {
+                importStatusText.textContent = 'Import complete!';
+                importProgressBar.style.width = '100%';
+                importStatus.classList.add('youtube-status-success');
+            }
+        });
+
+        try {
+            const result = await window.electronAPI.importFromYouTube(url);
+
+            if (result.success) {
+                // Success animation
+                importStatus.classList.add('youtube-status-success');
+                setTimeout(() => {
+                    showToast(`Imported: ${result.track?.name || 'Track'}`, 'success');
+                    closeModal();
+                    // Refresh playlists to show the new download
+                    loadPlaylists();
+                }, 800);
+            } else {
+                showToast(result.error || 'Import failed', 'error');
+                importStatus.classList.remove('youtube-status-visible');
+                setTimeout(() => {
+                    importStatus.classList.add('hidden');
+                }, 300);
+                confirmBtn.disabled = false;
+                confirmBtn.classList.remove('youtube-btn-loading');
+                urlInput.disabled = false;
+                urlInput.parentElement.classList.remove('youtube-input-disabled');
+            }
+        } catch (error) {
+            console.error('YouTube import error:', error);
+            showToast(error.message || 'Import failed', 'error');
+            importStatus.classList.remove('youtube-status-visible');
+            setTimeout(() => {
+                importStatus.classList.add('hidden');
+            }, 300);
+            confirmBtn.disabled = false;
+            confirmBtn.classList.remove('youtube-btn-loading');
+            urlInput.disabled = false;
+            urlInput.parentElement.classList.remove('youtube-input-disabled');
+        }
+    };
+
+    confirmBtn.addEventListener('click', handleImport);
+    urlInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') handleImport();
+        if (e.key === 'Escape') closeModal();
+    });
+}
+
+
+// ==================== CONTEXT MENU ====================
+const contextMenu = document.getElementById('context-menu');
+const ctxTrackName = document.getElementById('ctx-track-name');
+const ctxArtistName = document.getElementById('ctx-artist-name');
+const ctxLikeBtn = document.getElementById('ctx-like-btn');
+const ctxLikeIcon = document.getElementById('ctx-like-icon');
+const ctxLikeText = document.getElementById('ctx-like-text');
+const ctxAddToPlaylistBtn = document.getElementById('ctx-add-to-playlist-btn');
+const ctxRemoveBtn = document.getElementById('ctx-remove-btn');
+
+let contextMenuTrack = null;
+
+// Only close if clicking strictly OUTSIDE the menu
+document.addEventListener('mousedown', (e) => {
+    if (contextMenu && !contextMenu.classList.contains('hidden') && !contextMenu.contains(e.target)) {
+        hideContextMenu();
+    }
+});
+
+function hideContextMenu() {
+    if (!contextMenu) return;
+    contextMenu.classList.add('opacity-0', 'scale-95');
+    setTimeout(() => {
+        contextMenu.classList.add('hidden');
+    }, 100);
+}
+
+function showContextMenu(e, track) {
+    e.preventDefault();
+    e.stopPropagation(); // Stop propagation immediately
+    contextMenuTrack = track;
+
+    // Update menu content
+    if (ctxTrackName) ctxTrackName.textContent = track.name;
+    if (ctxArtistName) ctxArtistName.textContent = track.artistNames || track.artists?.map(a => a.name).join(', ') || 'Unknown Artist';
+
+    // Update Like button state
+    const isLiked = track.isLiked;
+    if (ctxLikeIcon && ctxLikeText) {
+        if (isLiked) {
+            ctxLikeIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>';
+            ctxLikeIcon.classList.add('text-accent-primary', 'fill-current');
+            ctxLikeText.textContent = 'Remove from Liked Songs';
+        } else {
+            ctxLikeIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>';
+            ctxLikeIcon.classList.remove('text-accent-primary', 'fill-current');
+            ctxLikeText.textContent = 'Save to Liked Songs';
+        }
+    }
+
+    // Show/Hide Remove button based on context
+    if (ctxRemoveBtn) {
+        if (currentPlaylistId && currentPlaylistId !== 'liked-songs' && currentPlaylistId !== 'downloads') {
+            ctxRemoveBtn.classList.remove('hidden');
+            // Try to get playlist name from header
+            const playlistNameEl = document.getElementById('playlist-detail-name');
+            const playlistName = playlistNameEl ? playlistNameEl.textContent : 'this Playlist';
+            // Update the text content of the button (keeping the icon svg)
+            const textNode = Array.from(ctxRemoveBtn.childNodes).find(node => node.nodeType === Node.TEXT_NODE);
+            if (textNode) {
+                textNode.textContent = `Remove from ${playlistName}`;
+            } else {
+                // If text node not found, just append/set text safely without killing svg
+                ctxRemoveBtn.innerHTML = `
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                    </svg>
+                    Remove from ${playlistName}
+                `;
+            }
+        } else {
+            ctxRemoveBtn.classList.add('hidden');
+        }
+    }
+
+    // Position menu
+    const menuWidth = 220;
+    const menuHeight = 200;
+    let x = e.clientX;
+    let y = e.clientY;
+
+    if (x + menuWidth > window.innerWidth) x = window.innerWidth - menuWidth - 10;
+    if (y + menuHeight > window.innerHeight) y = window.innerHeight - menuHeight - 10;
+
+    contextMenu.style.left = `${x}px`;
+    contextMenu.style.top = `${y}px`;
+
+    contextMenu.classList.remove('hidden');
+    // Force reflow
+    void contextMenu.offsetWidth;
+    contextMenu.classList.remove('opacity-0', 'scale-95');
+}
+
+ctxLikeBtn?.addEventListener('click', async (e) => {
+    e.stopPropagation();
+    if (contextMenuTrack) {
+        try {
+            const result = await window.electronAPI.toggleLike(contextMenuTrack);
+            if (result.success) {
+                contextMenuTrack.isLiked = result.liked;
+                if (currentPlaylistId === 'liked-songs' && !result.liked) {
+                    await removeTrackFromCurrentPlaylist(contextMenuTrack.id);
+                } else if (currentPlaylistId === 'liked-songs' && result.liked) {
+                    loadPlaylists();
+                }
+                showToast(result.liked ? 'Added to Liked Songs' : 'Removed from Liked Songs', 'success');
+            }
+        } catch (error) {
+            console.error('Error toggling like:', error);
+        }
+        hideContextMenu();
+    }
+});
+
+ctxAddToPlaylistBtn?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (contextMenuTrack) {
+        showPlaylistModal(contextMenuTrack);
+        hideContextMenu();
+    }
+});
+
+ctxRemoveBtn?.addEventListener('click', async (e) => {
+    e.stopPropagation();
+    if (contextMenuTrack && currentPlaylistId) {
+        await removeTrackFromCurrentPlaylist(contextMenuTrack.id);
+        hideContextMenu();
+    }
+});
 
 console.log('Riff renderer initialized');
 

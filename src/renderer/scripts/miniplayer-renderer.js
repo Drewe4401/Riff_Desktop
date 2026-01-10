@@ -218,7 +218,7 @@ function updateUI(state) {
         trackTitle.textContent = state.track.name || 'No Track Playing';
         trackArtist.textContent = state.track.artistNames || 'Select a track to play';
 
-        const imageUrl = state.track.album?.images?.[0]?.url || '';
+        const imageUrl = state.track.album?.images?.[0]?.url || state.track.thumbnailUrl || '';
         if (imageUrl) {
             albumArt.style.backgroundImage = `url('${imageUrl}')`;
         } else {

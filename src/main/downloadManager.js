@@ -270,9 +270,9 @@ class DownloadManager {
             this.downloadedTracks.delete(trackId);
             this.saveMetadata();
             try {
-                playlistManager.removeTrack('downloads', trackId);
+                playlistManager.removeTrackFromAllPlaylists(trackId);
             } catch (error) {
-                console.error('Error removing from downloads playlist:', error);
+                console.error('Error removing from playlists:', error);
             }
             return { success: true };
         }
@@ -281,9 +281,9 @@ class DownloadManager {
         this.downloadedTracks.delete(trackId);
         this.saveMetadata();
         try {
-            playlistManager.removeTrack('downloads', trackId);
+            playlistManager.removeTrackFromAllPlaylists(trackId);
         } catch (error) {
-            console.error('Error removing from downloads playlist:', error);
+            console.error('Error removing from playlists:', error);
         }
         return { success: true, message: 'Entry removed (file was already deleted)' };
     }
@@ -303,6 +303,283 @@ class DownloadManager {
             progress: data.progress,
             status: data.status
         }));
+    }
+
+    // Import track directly from YouTube URL
+    async importFromYouTube(youtubeUrl, onProgress) {
+        // Validate YouTube URL
+        const youtubeRegex = /^(https?:\/\/)?(www\.)?(youtube\.com\/(watch\?v=|shorts\/)|youtu\.be\/)/;
+        if (!youtubeRegex.test(youtubeUrl)) {
+            return { success: false, message: 'Invalid YouTube URL' };
+        }
+
+        // Generate a unique ID for this import
+        const trackId = `yt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+        // Check if already downloading
+        if (this.downloads.has(trackId)) {
+            return { success: false, message: 'Download already in progress' };
+        }
+
+        return new Promise(async (resolve, reject) => {
+            try {
+                // First, get video metadata
+                if (onProgress) {
+                    onProgress({ trackId, progress: 0, status: 'fetching_info' });
+                }
+
+                const metadata = await this.getYouTubeMetadata(youtubeUrl);
+                if (!metadata) {
+                    return reject(new Error('Could not fetch video metadata'));
+                }
+
+                const safeFileName = this.sanitizeFileName(`${metadata.artist} - ${metadata.title}`);
+                const outputPath = path.join(this.downloadPath, `${safeFileName}.mp3`);
+
+                // Get path to bundled ffmpeg
+                let ffmpegPath;
+                if (app.isPackaged) {
+                    ffmpegPath = path.join(process.resourcesPath, 'FFMPEG/bin');
+                } else {
+                    ffmpegPath = path.join(__dirname, '../../FFMPEG/bin');
+                }
+
+                // Download the audio and thumbnail
+                const args = [
+                    youtubeUrl,
+                    '-x',                          // Extract audio
+                    '--audio-format', 'mp3',       // Convert to MP3
+                    '--audio-quality', '0',        // Best quality
+                    '-o', outputPath,              // Output path for audio
+                    '--no-playlist',               // Don't download playlists
+                    '--write-thumbnail',           // Write thumbnail to disk
+                    '--convert-thumbnails', 'jpg', // Convert thumbnail to jpg
+                    '--embed-thumbnail',           // Embed thumbnail
+                    '--add-metadata',              // Add metadata
+                    '--ffmpeg-location', ffmpegPath,
+                    '--progress',
+                    '--newline'
+                ];
+
+                console.log(`Starting YouTube import: ${youtubeUrl}`);
+
+                const downloadProcess = spawn('yt-dlp', args);
+
+                this.downloads.set(trackId, {
+                    process: downloadProcess,
+                    track: { id: trackId, name: metadata.title, artistNames: metadata.artist },
+                    progress: 0,
+                    status: 'downloading'
+                });
+
+                let lastProgress = 0;
+
+                downloadProcess.stdout.on('data', (data) => {
+                    const output = data.toString();
+                    console.log('yt-dlp:', output);
+
+                    const progressMatch = output.match(/(\d+\.?\d*)%/);
+                    if (progressMatch) {
+                        const progress = parseFloat(progressMatch[1]);
+                        if (progress !== lastProgress) {
+                            lastProgress = progress;
+                            if (onProgress) {
+                                onProgress({ trackId, progress, status: 'downloading', title: metadata.title });
+                            }
+                        }
+                    }
+                });
+
+                downloadProcess.stderr.on('data', (data) => {
+                    console.error('yt-dlp error:', data.toString());
+                });
+
+                downloadProcess.on('close', (code) => {
+                    this.downloads.delete(trackId);
+
+                    if (code === 0) {
+                        // Find the downloaded audio file
+                        const files = fs.readdirSync(this.downloadPath);
+                        const audioExtensions = ['.mp3', '.m4a', '.webm', '.opus', '.ogg', '.wav'];
+                        const downloadedFile = files.find(f =>
+                            f.startsWith(safeFileName) && audioExtensions.some(ext => f.endsWith(ext))
+                        );
+
+                        // Find the downloaded image file
+                        const imageExtensions = ['.jpg', '.jpeg', '.png', '.webp'];
+                        const imageFile = files.find(f =>
+                            f.startsWith(safeFileName) && imageExtensions.some(ext => f.endsWith(ext))
+                        );
+
+                        if (downloadedFile) {
+                            const finalPath = path.join(this.downloadPath, downloadedFile);
+                            let finalImagePath = metadata.thumbnail; // Fallback to remote URL
+
+                            // Use local image if found
+                            if (imageFile) {
+                                finalImagePath = `file://${path.join(this.downloadPath, imageFile).replace(/\\/g, '/')}`;
+                            }
+
+                            // Log the metadata being used
+                            console.log('Creating track with metadata:', {
+                                title: metadata.title,
+                                artist: metadata.artist,
+                                thumbnail: finalImagePath,
+                                duration: metadata.duration,
+                                durationMs: Math.round((metadata.duration || 0) * 1000)
+                            });
+
+                            // Create track object with metadata
+                            const track = {
+                                id: trackId,
+                                name: metadata.title,
+                                artistNames: metadata.artist,
+                                album: {
+                                    name: 'YouTube Import',
+                                    images: [{ url: finalImagePath }]
+                                },
+                                // Store thumbnail at top level too for easier access
+                                thumbnailUrl: finalImagePath,
+                                duration_ms: Math.round((metadata.duration || 0) * 1000),
+                                filePath: finalPath,
+                                isDownloaded: true,
+                                isYouTubeImport: true,
+                                youtubeUrl: youtubeUrl,
+                                videoId: metadata.videoId,
+                                downloadedAt: Date.now()
+                            };
+
+                            // Store metadata
+                            this.downloadedTracks.set(trackId, {
+                                filePath: finalPath,
+                                track: track,
+                                downloadedAt: Date.now()
+                            });
+                            this.saveMetadata();
+
+                            // Add to Downloads playlist
+                            try {
+                                playlistManager.addTrack('downloads', track);
+                            } catch (error) {
+                                console.error('Error adding to Downloads playlist:', error);
+                            }
+
+                            if (onProgress) {
+                                onProgress({ trackId, progress: 100, status: 'complete', title: metadata.title });
+                            }
+
+                            resolve({
+                                success: true,
+                                message: 'Import complete',
+                                track: track,
+                                filePath: finalPath
+                            });
+                        } else {
+                            reject(new Error('Download completed but file not found'));
+                        }
+                    } else {
+                        if (onProgress) {
+                            onProgress({ trackId, progress: 0, status: 'error' });
+                        }
+                        reject(new Error(`Import failed with code ${code}`));
+                    }
+                });
+
+                downloadProcess.on('error', (error) => {
+                    this.downloads.delete(trackId);
+                    if (error.code === 'ENOENT') {
+                        reject(new Error('yt-dlp not found. Please install yt-dlp.'));
+                    } else {
+                        reject(error);
+                    }
+                });
+
+            } catch (error) {
+                reject(error);
+            }
+        });
+    }
+
+    // Get metadata from YouTube URL
+    async getYouTubeMetadata(youtubeUrl) {
+        return new Promise((resolve, reject) => {
+            const args = [
+                youtubeUrl,
+                '--dump-json',
+                '--no-download',
+                '--no-playlist'
+            ];
+
+            const process = spawn('yt-dlp', args);
+            let output = '';
+
+            process.stdout.on('data', (data) => {
+                output += data.toString();
+            });
+
+            process.stderr.on('data', (data) => {
+                console.error('yt-dlp metadata error:', data.toString());
+            });
+
+            process.on('close', (code) => {
+                if (code === 0 && output) {
+                    try {
+                        const data = JSON.parse(output);
+                        console.log('YouTube metadata received:', {
+                            title: data.title,
+                            uploader: data.uploader,
+                            channel: data.channel,
+                            duration: data.duration,
+                            thumbnail: data.thumbnail,
+                            thumbnailsCount: data.thumbnails?.length
+                        });
+
+                        // Get best thumbnail - yt-dlp returns either a single thumbnail or an array
+                        let thumbnailUrl = null;
+                        if (data.thumbnail) {
+                            thumbnailUrl = data.thumbnail;
+                        } else if (data.thumbnails && data.thumbnails.length > 0) {
+                            // Get the highest resolution thumbnail
+                            const sortedThumbnails = [...data.thumbnails].sort((a, b) =>
+                                (b.width || 0) * (b.height || 0) - (a.width || 0) * (a.height || 0)
+                            );
+                            thumbnailUrl = sortedThumbnails[0].url;
+                        }
+
+                        // Fallback to YouTube's standard thumbnail URL format
+                        if (!thumbnailUrl && data.id) {
+                            thumbnailUrl = `https://img.youtube.com/vi/${data.id}/maxresdefault.jpg`;
+                        }
+
+                        const metadata = {
+                            title: data.title || 'Unknown Title',
+                            artist: data.uploader || data.channel || data.artist || 'Unknown Artist',
+                            thumbnail: thumbnailUrl,
+                            duration: data.duration || 0,
+                            videoId: data.id || null,
+                            description: data.description || ''
+                        };
+
+                        console.log('Parsed metadata:', metadata);
+                        resolve(metadata);
+                    } catch (error) {
+                        console.error('Error parsing metadata:', error);
+                        resolve({
+                            title: 'Unknown Title',
+                            artist: 'Unknown Artist',
+                            thumbnail: null,
+                            duration: 0
+                        });
+                    }
+                } else {
+                    reject(new Error('Could not fetch video info'));
+                }
+            });
+
+            process.on('error', (error) => {
+                reject(error);
+            });
+        });
     }
 }
 

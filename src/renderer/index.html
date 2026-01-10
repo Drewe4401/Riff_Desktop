@@ -172,14 +172,25 @@
                             <h1 class="text-3xl font-bold text-white mb-1">Your Library</h1>
                             <p class="text-text-muted text-sm">Manage your playlists and liked songs</p>
                         </div>
-                        <button id="create-playlist-btn"
-                            class="flex items-center gap-2 px-4 py-2.5 bg-accent-primary text-black font-semibold rounded-full hover:bg-accent-primary/90 transition-all hover:scale-105">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M12 4v16m8-8H4" />
-                            </svg>
-                            <span>New Playlist</span>
-                        </button>
+                        <div class="flex items-center gap-3">
+                            <button id="import-youtube-btn"
+                                class="flex items-center gap-2 px-4 py-2.5 bg-red-600 text-white font-semibold rounded-full hover:bg-red-500 transition-all hover:scale-105"
+                                title="Import from YouTube">
+                                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                                    <path
+                                        d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z" />
+                                </svg>
+                                Import
+                            </button>
+                            <button id="create-playlist-btn"
+                                class="flex items-center gap-2 px-4 py-2.5 bg-accent-primary text-black font-semibold rounded-full hover:bg-accent-primary/90 transition-all hover:scale-105">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M12 4v16m8-8H4" />
+                                </svg>
+                                Create Playlist
+                            </button>
+                        </div>
                     </header>
 
                     <!-- Playlist Grid View -->
@@ -414,6 +425,47 @@
             background: #bf0f1d;
         }
     </style>
+
+    <!-- Context Menu -->
+    <div id="context-menu"
+        class="fixed hidden min-w-[220px] rounded-md shadow-2xl py-1 transform duration-100 origin-top-left font-sans text-sm"
+        style="z-index: 2147483647; background-color: #282828; border: 1px solid #3E3E3E; color: #EAEAEA; pointer-events: auto; -webkit-app-region: no-drag; cursor: default;"
+        onmousedown="event.stopPropagation()" onmouseup="event.stopPropagation()" onclick="event.stopPropagation()">
+
+        <div id="ctx-header" class="px-3 py-2 border-b border-[#3E3E3E] mb-1">
+            <div id="ctx-track-name" class="font-bold text-white truncate max-w-[190px]">Track Name</div>
+            <div id="ctx-artist-name" class="text-xs text-[#B3B3B3] truncate max-w-[190px] mt-0.5">Artist</div>
+        </div>
+
+        <button id="ctx-like-btn"
+            class="w-full text-left px-3 py-2.5 hover:bg-[#3E3E3E] flex items-center gap-3 transition-colors text-[#EAEAEA]">
+            <svg id="ctx-like-icon" class="w-4 h-4 text-[#B3B3B3]" fill="none" stroke="currentColor"
+                viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+            </svg>
+            <span id="ctx-like-text">Save to Liked Songs</span>
+        </button>
+
+        <button id="ctx-add-to-playlist-btn"
+            class="w-full text-left px-3 py-2.5 hover:bg-[#3E3E3E] flex items-center gap-3 transition-colors text-[#EAEAEA]">
+            <svg class="w-4 h-4 text-[#B3B3B3]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+            </svg>
+            Add to Playlist...
+        </button>
+
+        <div class="h-px bg-[#3E3E3E] my-1 mx-2"></div>
+
+        <button id="ctx-remove-btn"
+            class="w-full text-left px-3 py-2.5 text-red-400 hover:bg-[#3E3E3E] flex items-center gap-3 transition-colors hidden">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+            Remove from this Playlist
+        </button>
+    </div>
 
     <script src="./scripts/renderer.js"></script>
 </body>

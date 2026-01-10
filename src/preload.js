@@ -70,6 +70,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
     },
     removeDownloadProgressListener: () => {
         ipcRenderer.removeAllListeners('download-progress');
+    },
+
+    // YouTube Import
+    importFromYouTube: (youtubeUrl) => ipcRenderer.invoke('import-youtube', youtubeUrl),
+    onYouTubeImportProgress: (callback) => {
+        ipcRenderer.on('youtube-import-progress', (event, progress) => callback(progress));
+    },
+    removeYouTubeImportListener: () => {
+        ipcRenderer.removeAllListeners('youtube-import-progress');
     }
 });
 

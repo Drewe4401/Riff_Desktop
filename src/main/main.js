@@ -296,6 +296,18 @@ const createWindow = () => {
     ipcMain.handle('playlist-get', async (event, playlistId) => {
         try {
             const playlist = playlistManager.getPlaylist(playlistId);
+
+            // Populate dynamic properties (isLiked, isDownloaded)
+            if (playlist && playlist.tracks) {
+                playlist.tracks = playlist.tracks.map(track => {
+                    return {
+                        ...track,
+                        isLiked: playlistManager.isLiked(track.id),
+                        isDownloaded: downloadManager.isDownloaded(track.id)
+                    };
+                });
+            }
+
             return { success: true, playlist };
         } catch (error) {
             console.error('Get Playlist Error:', error);
@@ -460,6 +472,20 @@ const createWindow = () => {
             const filePath = downloadManager.getDownloadPath(trackId);
             return { success: true, filePath };
         } catch (error) {
+            return { success: false, error: error.message };
+        }
+    });
+
+    // Import from YouTube URL
+    ipcMain.handle('import-youtube', async (event, youtubeUrl) => {
+        try {
+            const result = await downloadManager.importFromYouTube(youtubeUrl, (progress) => {
+                // Send progress updates to renderer
+                mainWindow.webContents.send('youtube-import-progress', progress);
+            });
+            return result;
+        } catch (error) {
+            console.error('YouTube Import Error:', error);
             return { success: false, error: error.message };
         }
     });
