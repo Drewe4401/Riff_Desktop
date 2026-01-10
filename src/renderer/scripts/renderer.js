@@ -361,6 +361,12 @@ async function toggleLike(track, button) {
                 button.title = 'Remove from Liked';
                 button.querySelector('svg').setAttribute('fill', 'currentColor');
                 showToast('Added to Liked Songs', 'success');
+
+                // Auto-download the track if not already downloaded
+                if (!track.isDownloaded) {
+                    const cardElement = button.closest('.track-card');
+                    downloadTrack(track, cardElement);
+                }
             } else {
                 button.classList.remove('active');
                 button.title = 'Add to Liked';
