@@ -1,10 +1,18 @@
 const { app, BrowserWindow, ipcMain, dialog, screen } = require('electron');
-require('dotenv').config();
 const path = require('path');
+const dotenv = require('dotenv');
+
+// Load environment variables
+if (app.isPackaged) {
+    dotenv.config({ path: path.join(process.resourcesPath, '.env') });
+} else {
+    dotenv.config();
+}
 const fs = require('fs');
 const spotifyService = require('./spotify');
 const playlistManager = require('./playlistManager');
 const downloadManager = require('./downloadManager');
+const settingsManager = require('./settingsManager');
 
 let mainWindow = null;
 let miniplayerWindow = null;
@@ -147,8 +155,18 @@ const createWindow = () => {
     mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'));
 
     // Initialize managers
+    settingsManager.initialize();
     playlistManager.initialize();
     downloadManager.initialize();
+
+    // Load Spotify credentials from settings (user-provided only - no .env fallback)
+    const savedCreds = settingsManager.getSpotifyCredentials();
+    if (savedCreds.clientId && savedCreds.clientSecret) {
+        spotifyService.setCredentials(savedCreds.clientId, savedCreds.clientSecret);
+        console.log('Loaded Spotify credentials from user settings');
+    } else {
+        console.log('No Spotify credentials configured - user must add them in Settings');
+    }
 
     // Window Control IPC
     ipcMain.on('window-minimize', () => mainWindow.minimize());
@@ -236,6 +254,15 @@ const createWindow = () => {
 
     ipcMain.handle('spotify-search', async (event, searchParams) => {
         try {
+            // Check if credentials are configured
+            if (!settingsManager.hasSpotifyCredentials()) {
+                return {
+                    success: false,
+                    error: 'Spotify credentials not configured. Please add your API credentials in Settings.',
+                    needsCredentials: true
+                };
+            }
+
             // Support both string query and object with offset
             const query = typeof searchParams === 'string' ? searchParams : searchParams.query;
             const offset = typeof searchParams === 'object' ? (searchParams.offset || 0) : 0;
@@ -264,6 +291,14 @@ const createWindow = () => {
             return { success: true, tracks: [], total: 0, hasMore: false };
         } catch (error) {
             console.error('Spotify Search Error:', error);
+            // Check if error is due to missing credentials
+            if (error.message.includes('Missing Spotify credentials')) {
+                return {
+                    success: false,
+                    error: 'Spotify credentials not configured. Please add your API credentials in Settings.',
+                    needsCredentials: true
+                };
+            }
             return { success: false, error: error.message };
         }
     });
@@ -503,6 +538,96 @@ const createWindow = () => {
 
     // Uncomment to open DevTools in dev mode
     // mainWindow.webContents.openDevTools();
+
+    // ==================== SETTINGS IPC ====================
+
+    // Get Spotify credentials (masked secret for display)
+    ipcMain.handle('settings-get-credentials', async () => {
+        try {
+            const creds = settingsManager.getSpotifyCredentials();
+            return {
+                success: true,
+                hasCredentials: !!(creds.clientId && creds.clientSecret),
+                clientId: creds.clientId || '',
+                // Mask the secret for display (show first 4 and last 4 chars)
+                clientSecretMasked: creds.clientSecret
+                    ? creds.clientSecret.slice(0, 4) + '••••••••' + creds.clientSecret.slice(-4)
+                    : ''
+            };
+        } catch (error) {
+            return { success: false, error: error.message };
+        }
+    });
+
+    // Save Spotify credentials
+    ipcMain.handle('settings-save-credentials', async (event, { clientId, clientSecret }) => {
+        try {
+            const result = settingsManager.setSpotifyCredentials(clientId, clientSecret);
+            if (result.success) {
+                // Update the Spotify service with new credentials
+                spotifyService.setCredentials(clientId, clientSecret);
+                // Clear any cached tokens to force re-auth with new creds
+                spotifyService.accessToken = null;
+                spotifyService.tokenExpiry = null;
+            }
+            return result;
+        } catch (error) {
+            return { success: false, error: error.message };
+        }
+    });
+
+    // Validate Spotify credentials by attempting authentication
+    ipcMain.handle('settings-validate-credentials', async (event, { clientId, clientSecret }) => {
+        try {
+            // Temporarily set credentials for validation
+            const originalId = spotifyService.clientId;
+            const originalSecret = spotifyService.clientSecret;
+            const originalToken = spotifyService.accessToken;
+
+            spotifyService.setCredentials(clientId, clientSecret);
+            spotifyService.accessToken = null;
+            spotifyService.tokenExpiry = null;
+
+            try {
+                await spotifyService.authenticate();
+                return { success: true, valid: true };
+            } catch (authError) {
+                // Restore original credentials on failure
+                spotifyService.setCredentials(originalId, originalSecret);
+                spotifyService.accessToken = originalToken;
+                return { success: true, valid: false, error: authError.message };
+            }
+        } catch (error) {
+            return { success: false, error: error.message };
+        }
+    });
+
+    // Check if credentials are configured
+    ipcMain.handle('settings-has-credentials', async () => {
+        try {
+            return {
+                success: true,
+                hasCredentials: settingsManager.hasSpotifyCredentials()
+            };
+        } catch (error) {
+            return { success: false, error: error.message };
+        }
+    });
+
+    // Clear credentials
+    ipcMain.handle('settings-clear-credentials', async () => {
+        try {
+            const result = settingsManager.clearSpotifyCredentials();
+            if (result.success) {
+                spotifyService.setCredentials('', '');
+                spotifyService.accessToken = null;
+                spotifyService.tokenExpiry = null;
+            }
+            return result;
+        } catch (error) {
+            return { success: false, error: error.message };
+        }
+    });
 };
 
 app.whenReady().then(() => {

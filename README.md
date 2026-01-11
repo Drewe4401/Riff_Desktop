@@ -4,7 +4,9 @@
 
 ## Overview
 
-Riff is a desktop application designed to bridge the gap between streaming and offline playback. It allows you to search for songs using the Spotify API, organize them into playlists, and automatically download them for offline listening. With a beautiful glassmorphism-inspired interface, dark mode support, and smooth animations, Riff offers a premium music experience on your desktop.
+Riff is a desktop application designed to bridge the gap between streaming and offline playback. Search for songs using the Spotify API, organize them into playlists, and automatically download them for offline listening. With a beautiful glassmorphism-inspired interface, dark mode support, and smooth animations, Riff offers a premium music experience on your desktop.
+
+> ⚡ **Quick Start**: After installation, you'll need to add your own [Spotify API credentials](#-spotify-api-setup-required) (free, takes 2 minutes).
 
 ## 🆕 What's New in v1.1.0
 **Latest Release (2026-01-10)**
@@ -51,6 +53,11 @@ Riff is a desktop application designed to bridge the gap between streaming and o
 | ![YouTube Import](src/renderer/assets/Import_Youtube.png) | ![Context Menu](src/renderer/assets/Right_Click.png) |
 | *Direct YouTube Download* | *Right-Click Controls* |
 
+| Settings |
+|:---:|
+| ![Settings](src/renderer/assets/Spotify.png) |
+| *Spotify API Configuration* |
+
 ## 🚀 Getting Started
 
 ### Prerequisites
@@ -77,18 +84,56 @@ Riff is a desktop application designed to bridge the gap between streaming and o
    npm start
    ```
 
-## 🛠️ Configuration
+## 🔐 Spotify API Setup (Required)
 
-Riff uses the Spotify API for finding metadata. By default, it includes pre-configured credentials for testing. 
+Riff requires your own Spotify API credentials to function. This is a **one-time setup** that takes about 2 minutes.
 
-To use your own credentials (recommended for forks or production use):
-1. Go to the [Spotify Developer Dashboard](https://developer.spotify.com/dashboard/) and create an app.
-2. Create a `.env` file in the root directory.
-3. Add your credentials:
-   ```
-   SPOTIFY_CLIENT_ID=your_client_id_here
-   SPOTIFY_CLIENT_SECRET=your_client_secret_here
-   ```
+<p align="center">
+  <img src="src/renderer/assets/Spotify.png" alt="Spotify API Settings" width="600"/>
+  <br/>
+  <em>Configure your credentials in the Settings panel</em>
+</p>
+
+### Why do I need my own credentials?
+
+Riff uses the Spotify API to search for songs and retrieve metadata (album art, artist info, etc.). By using your own credentials, you ensure:
+- ✅ **Privacy**: Your listening data stays with your own Spotify Developer account
+- ✅ **Reliability**: No shared rate limits with other users
+- ✅ **Control**: Full ownership of your API access
+
+### Step-by-Step Setup
+
+#### 1️⃣ Create a Spotify Developer Account
+1. Go to the [Spotify Developer Dashboard](https://developer.spotify.com/dashboard/)
+2. Log in with your existing Spotify account (or create one for free)
+
+#### 2️⃣ Create a New App
+1. Click **"Create App"**
+2. Fill in the required fields:
+   - **App name**: `Riff Player` (or anything you prefer)
+   - **App description**: `Personal music player`
+   - **Redirect URI**: `http://localhost:3000` (required but not used)
+3. Accept the terms and click **"Save"**
+
+#### 3️⃣ Get Your Credentials
+1. In your new app's dashboard, you'll see your **Client ID**
+2. Click **"View client secret"** to reveal your **Client Secret**
+3. Copy both values
+
+#### 4️⃣ Configure Riff
+1. Launch Riff
+2. Click **Settings** (gear icon in the sidebar)
+3. Paste your **Client ID** and **Client Secret** into the form
+4. Click **"Test Connection"** to verify your credentials work
+5. Once verified, click **"Save Credentials"**
+
+> ✨ **That's it!** You're ready to start searching and downloading music.
+
+### Security Note
+
+🔒 Your credentials are stored **locally on your device** in an encrypted format. They are never sent anywhere except directly to Spotify's authentication servers.
+
+---
 
 ## 📦 Building
 

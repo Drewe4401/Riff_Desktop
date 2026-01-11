@@ -87,6 +87,8 @@ searchInput.addEventListener('input', (e) => {
                 currentTracks = result.tracks;
                 hasMoreResults = result.hasMore;
                 renderResults(result.tracks, false);
+            } else if (result.needsCredentials) {
+                showCredentialsRequired();
             } else {
                 showError(result.error || 'Search failed');
             }
@@ -183,6 +185,49 @@ function showError(message) {
             <button onclick="showEmptyState()" class="text-sm text-text-muted hover:text-white underline mt-2">Try again</button>
         </div>
     `;
+}
+
+function showCredentialsRequired() {
+    emptyState.classList.remove('hidden');
+    trackGrid.classList.add('hidden');
+    emptyState.innerHTML = `
+        <div class="credentials-required-card flex flex-col items-center gap-6 max-w-md mx-auto">
+            <!-- Spotify Icon -->
+            <div class="w-20 h-20 rounded-2xl bg-gradient-to-br from-[#1DB954] to-[#1ed760] flex items-center justify-center shadow-2xl shadow-[#1DB954]/30 animate-pulse">
+                <svg class="w-10 h-10 text-white" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/>
+                </svg>
+            </div>
+            
+            <!-- Title & Description -->
+            <div class="text-center">
+                <h2 class="text-2xl font-bold text-white mb-2">Spotify API Required</h2>
+                <p class="text-text-muted text-sm leading-relaxed">
+                    To search and stream music, you need to connect your own Spotify API credentials. 
+                    It only takes a minute to set up!
+                </p>
+            </div>
+            
+            <!-- Action Button -->
+            <button id="go-to-settings-btn" class="flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-[#1DB954] to-[#1ed760] text-black font-bold rounded-full hover:scale-105 transition-all shadow-lg shadow-[#1DB954]/30 hover:shadow-xl hover:shadow-[#1DB954]/40">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="3"></circle>
+                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                </svg>
+                Open Settings
+            </button>
+            
+            <!-- Help Text -->
+            <p class="text-xs text-neutral-500 text-center">
+                Your credentials are stored locally and never shared.
+            </p>
+        </div>
+    `;
+
+    // Add click handler
+    document.getElementById('go-to-settings-btn')?.addEventListener('click', () => {
+        switchView('settings');
+    });
 }
 
 function renderResults(tracks, append = false) {
@@ -1078,8 +1123,10 @@ function showToast(message, type = 'info') {
 // ==================== NAVIGATION ====================
 const navHome = document.getElementById('nav-home');
 const navLibrary = document.getElementById('nav-library');
+const navSettings = document.getElementById('nav-settings');
 const homeView = document.getElementById('home-view');
 const libraryView = document.getElementById('library-view');
+const settingsView = document.getElementById('settings-view');
 
 function switchView(viewName) {
     // Update nav
@@ -1108,11 +1155,19 @@ function switchView(viewName) {
         }
 
         renderLibrary();
+    } else if (viewName === 'settings') {
+        navSettings?.classList.add('active');
+        settingsView?.classList.remove('hidden');
+        settingsView?.classList.add('active');
+
+        // Load current credentials when switching to settings
+        loadSpotifyCredentials();
     }
 }
 
 navHome?.addEventListener('click', () => switchView('home'));
 navLibrary?.addEventListener('click', () => switchView('library'));
+navSettings?.addEventListener('click', () => switchView('settings'));
 
 // ==================== LIBRARY VIEW ====================
 const playlistGrid = document.getElementById('playlist-grid');
@@ -2297,6 +2352,258 @@ ctxRemoveBtn?.addEventListener('click', async (e) => {
         hideContextMenu();
     }
 });
+
+// ==================== SETTINGS LOGIC ====================
+const spotifyClientIdInput = document.getElementById('spotify-client-id');
+const spotifyClientSecretInput = document.getElementById('spotify-client-secret');
+const toggleSecretVisibilityBtn = document.getElementById('toggle-secret-visibility');
+const eyeIcon = document.getElementById('eye-icon');
+const eyeOffIcon = document.getElementById('eye-off-icon');
+const validateCredentialsBtn = document.getElementById('validate-credentials-btn');
+const saveCredentialsBtn = document.getElementById('save-credentials-btn');
+const clearCredentialsBtn = document.getElementById('clear-credentials-btn');
+const statusBadge = document.getElementById('status-badge');
+const validationMessage = document.getElementById('validation-message');
+
+let isSecretVisible = false;
+
+// Toggle password visibility
+toggleSecretVisibilityBtn?.addEventListener('click', () => {
+    isSecretVisible = !isSecretVisible;
+    spotifyClientSecretInput.type = isSecretVisible ? 'text' : 'password';
+    eyeIcon?.classList.toggle('hidden', isSecretVisible);
+    eyeOffIcon?.classList.toggle('hidden', !isSecretVisible);
+});
+
+// Load current credentials
+async function loadSpotifyCredentials() {
+    try {
+        const result = await window.electronAPI.getSpotifyCredentials();
+        if (result.success) {
+            if (result.hasCredentials) {
+                spotifyClientIdInput.value = result.clientId;
+                spotifyClientSecretInput.value = '';
+                spotifyClientSecretInput.placeholder = result.clientSecretMasked || 'Current secret saved (enter new to change)';
+                updateStatusBadge('configured');
+            } else {
+                spotifyClientIdInput.value = '';
+                spotifyClientSecretInput.value = '';
+                spotifyClientSecretInput.placeholder = 'e.g., AbC123dEf456gHi789...';
+                updateStatusBadge('not-configured');
+            }
+        }
+    } catch (error) {
+        console.error('Error loading credentials:', error);
+        showValidationMessage('error', 'Failed to load credentials');
+    }
+}
+
+// Update status badge
+function updateStatusBadge(status) {
+    if (!statusBadge) return;
+
+    if (status === 'configured') {
+        statusBadge.className = 'px-3 py-1 rounded-full text-xs font-semibold bg-green-500/20 text-green-400';
+        statusBadge.textContent = 'Configured';
+    } else if (status === 'not-configured') {
+        statusBadge.className = 'px-3 py-1 rounded-full text-xs font-semibold bg-red-500/20 text-red-400';
+        statusBadge.textContent = 'Not Configured';
+    } else if (status === 'validated') {
+        statusBadge.className = 'px-3 py-1 rounded-full text-xs font-semibold bg-green-500/20 text-green-400';
+        statusBadge.textContent = '✓ Validated';
+    }
+}
+
+// Show validation message
+function showValidationMessage(type, message) {
+    if (!validationMessage) return;
+
+    validationMessage.classList.remove('hidden');
+
+    if (type === 'success') {
+        validationMessage.className = 'px-4 py-3 rounded-lg text-sm font-medium bg-green-500/20 text-green-400 border border-green-500/30';
+    } else if (type === 'error') {
+        validationMessage.className = 'px-4 py-3 rounded-lg text-sm font-medium bg-red-500/20 text-red-400 border border-red-500/30';
+    } else if (type === 'info') {
+        validationMessage.className = 'px-4 py-3 rounded-lg text-sm font-medium bg-blue-500/20 text-blue-400 border border-blue-500/30';
+    }
+
+    validationMessage.innerHTML = `
+        <div class="flex items-center gap-2">
+            ${type === 'success' ? '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>' : ''}
+            ${type === 'error' ? '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>' : ''}
+            ${type === 'info' ? '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>' : ''}
+            <span>${message}</span>
+        </div>
+    `;
+
+    // Auto-hide after 5 seconds for success messages
+    if (type === 'success') {
+        setTimeout(() => {
+            validationMessage.classList.add('hidden');
+        }, 5000);
+    }
+}
+
+// Hide validation message
+function hideValidationMessage() {
+    if (validationMessage) {
+        validationMessage.classList.add('hidden');
+    }
+}
+
+// Validate credentials
+validateCredentialsBtn?.addEventListener('click', async () => {
+    const clientId = spotifyClientIdInput?.value.trim();
+    const clientSecret = spotifyClientSecretInput?.value.trim();
+
+    if (!clientId) {
+        showValidationMessage('error', 'Please enter your Client ID');
+        return;
+    }
+
+    if (!clientSecret) {
+        showValidationMessage('error', 'Please enter your Client Secret to validate');
+        return;
+    }
+
+    // Show loading state
+    validateCredentialsBtn.disabled = true;
+    validateCredentialsBtn.innerHTML = `
+        <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        Validating...
+    `;
+
+    try {
+        const result = await window.electronAPI.validateSpotifyCredentials(clientId, clientSecret);
+
+        if (result.success && result.valid) {
+            showValidationMessage('success', 'Credentials are valid! You can now save them.');
+            updateStatusBadge('validated');
+        } else {
+            showValidationMessage('error', result.error || 'Invalid credentials. Please check your Client ID and Secret.');
+        }
+    } catch (error) {
+        console.error('Validation error:', error);
+        showValidationMessage('error', 'Failed to validate credentials. Check your internet connection.');
+    } finally {
+        validateCredentialsBtn.disabled = false;
+        validateCredentialsBtn.innerHTML = `
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            Validate
+        `;
+    }
+});
+
+// Save credentials
+saveCredentialsBtn?.addEventListener('click', async () => {
+    const clientId = spotifyClientIdInput?.value.trim();
+    const clientSecret = spotifyClientSecretInput?.value.trim();
+
+    if (!clientId) {
+        showValidationMessage('error', 'Please enter your Client ID');
+        return;
+    }
+
+    if (!clientSecret) {
+        // Check if we have existing credentials and user only wants to update ID
+        const existing = await window.electronAPI.getSpotifyCredentials();
+        if (!existing.hasCredentials) {
+            showValidationMessage('error', 'Please enter your Client Secret');
+            return;
+        }
+        showValidationMessage('info', 'Leave Client Secret empty to keep the existing secret, or enter a new one to update it.');
+        return;
+    }
+
+    // Show loading state
+    saveCredentialsBtn.disabled = true;
+    saveCredentialsBtn.innerHTML = `
+        <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        Saving...
+    `;
+
+    try {
+        const result = await window.electronAPI.saveSpotifyCredentials(clientId, clientSecret);
+
+        if (result.success) {
+            showValidationMessage('success', 'Credentials saved successfully! The app is now ready to use.');
+            updateStatusBadge('configured');
+            showToast('Spotify credentials saved', 'success');
+
+            // Update placeholder to show masked secret
+            spotifyClientSecretInput.value = '';
+            spotifyClientSecretInput.placeholder = clientSecret.slice(0, 4) + '••••••••' + clientSecret.slice(-4);
+        } else {
+            showValidationMessage('error', result.error || 'Failed to save credentials');
+        }
+    } catch (error) {
+        console.error('Save error:', error);
+        showValidationMessage('error', 'Failed to save credentials');
+    } finally {
+        saveCredentialsBtn.disabled = false;
+        saveCredentialsBtn.innerHTML = `
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/>
+            </svg>
+            Save Credentials
+        `;
+    }
+});
+
+// Clear credentials
+clearCredentialsBtn?.addEventListener('click', async () => {
+    const confirmed = await showConfirmDialog(
+        'Clear Credentials',
+        'Are you sure you want to clear your Spotify credentials? You will need to re-enter them to use Riff.',
+        'Clear',
+        'Cancel',
+        'warning'
+    );
+
+    if (confirmed) {
+        try {
+            const result = await window.electronAPI.clearSpotifyCredentials();
+
+            if (result.success) {
+                spotifyClientIdInput.value = '';
+                spotifyClientSecretInput.value = '';
+                spotifyClientSecretInput.placeholder = 'e.g., AbC123dEf456gHi789...';
+                updateStatusBadge('not-configured');
+                hideValidationMessage();
+                showToast('Credentials cleared', 'info');
+            } else {
+                showValidationMessage('error', 'Failed to clear credentials');
+            }
+        } catch (error) {
+            console.error('Clear error:', error);
+            showValidationMessage('error', 'Failed to clear credentials');
+        }
+    }
+});
+
+// Check for credentials on startup and show settings if not configured
+(async () => {
+    try {
+        const result = await window.electronAPI.hasSpotifyCredentials();
+        if (result.success && !result.hasCredentials) {
+            // No credentials configured, show a gentle prompt
+            setTimeout(() => {
+                showToast('Configure your Spotify credentials in Settings to get started', 'info');
+            }, 1500);
+        }
+    } catch (error) {
+        console.error('Error checking credentials:', error);
+    }
+})();
 
 console.log('Riff renderer initialized');
 

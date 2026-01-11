@@ -79,6 +79,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
     },
     removeYouTubeImportListener: () => {
         ipcRenderer.removeAllListeners('youtube-import-progress');
-    }
+    },
+
+    // Settings
+    getSpotifyCredentials: () => ipcRenderer.invoke('settings-get-credentials'),
+    saveSpotifyCredentials: (clientId, clientSecret) => ipcRenderer.invoke('settings-save-credentials', { clientId, clientSecret }),
+    validateSpotifyCredentials: (clientId, clientSecret) => ipcRenderer.invoke('settings-validate-credentials', { clientId, clientSecret }),
+    hasSpotifyCredentials: () => ipcRenderer.invoke('settings-has-credentials'),
+    clearSpotifyCredentials: () => ipcRenderer.invoke('settings-clear-credentials')
 });
 

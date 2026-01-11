@@ -149,10 +149,10 @@ class DownloadManager {
 
             console.log(`Starting download: ${searchQuery}`);
 
-            const process = spawn('yt-dlp', args);
+            const downloadProcess = spawn('yt-dlp', args);
 
             this.downloads.set(trackId, {
-                process,
+                process: downloadProcess,
                 track,
                 progress: 0,
                 status: 'downloading'
@@ -160,7 +160,7 @@ class DownloadManager {
 
             let lastProgress = 0;
 
-            process.stdout.on('data', (data) => {
+            downloadProcess.stdout.on('data', (data) => {
                 const output = data.toString();
                 console.log('yt-dlp:', output);
 
@@ -177,11 +177,11 @@ class DownloadManager {
                 }
             });
 
-            process.stderr.on('data', (data) => {
+            downloadProcess.stderr.on('data', (data) => {
                 console.error('yt-dlp error:', data.toString());
             });
 
-            process.on('close', (code) => {
+            downloadProcess.on('close', (code) => {
                 this.downloads.delete(trackId);
 
                 if (code === 0) {
@@ -236,7 +236,7 @@ class DownloadManager {
                 }
             });
 
-            process.on('error', (error) => {
+            downloadProcess.on('error', (error) => {
                 this.downloads.delete(trackId);
 
                 if (error.code === 'ENOENT') {
