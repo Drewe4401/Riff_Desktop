@@ -6,6 +6,21 @@
 
 Riff is a desktop application designed to bridge the gap between streaming and offline playback. It allows you to search for songs using the Spotify API, organize them into playlists, and automatically download them for offline listening. With a beautiful glassmorphism-inspired interface, dark mode support, and smooth animations, Riff offers a premium music experience on your desktop.
 
+## 🆕 What's New in v1.1.0
+**Latest Release (2026-01-10)**
+
+### ✨ New Features
+- **YouTube Integration**: Direct downloads from YouTube URLs.
+- **Miniplayer**: New compact window mode for background listening.
+- **Advanced Playback Controls**: Added Shuffle and Loop functionality.
+- **Smart Automation**: "Liked" songs are now automatically downloaded.
+- **Enhanced Playlists**: Improved playlist management with "Downloads" and "Liked Songs" auto-playlists.
+
+### 🎨 Improvements
+- **UI Refinements**: Added new control buttons and updated styling for active states.
+- **Playlist Sync**: Deleting a download now removes it from all playlists.
+- **Cover Art**: Better support for YouTube thumbnails and fallback images.
+
 ## ✨ Features
 
 - **Search & Discover**: Access the vast library of songs via Spotify search integration.
@@ -26,10 +41,15 @@ Riff is a desktop application designed to bridge the gap between streaming and o
 | ![Home View](src/renderer/assets/Home.png) | ![Library View](src/renderer/assets/Library.png) |
 | *Home & Search* | *Your Library* |
 
-| Playlist View |
-|:---:|
-| ![Playlist View](src/renderer/assets/Playlist.png) |
-| *Custom Playlists* |
+| Playlist View | Miniplayer |
+|:---:|:---:|
+| ![Playlist View](src/renderer/assets/Playlist.png) | ![Miniplayer](src/renderer/assets/Miniplayer.png) |
+| *Custom Playlists* | *Compact Miniplayer* |
+
+| YouTube Import | Context Menu |
+|:---:|:---:|
+| ![YouTube Import](src/renderer/assets/Import_Youtube.png) | ![Context Menu](src/renderer/assets/Right_Click.png) |
+| *Direct YouTube Download* | *Right-Click Controls* |
 
 ## 🚀 Getting Started
 
