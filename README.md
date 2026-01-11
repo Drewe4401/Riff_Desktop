@@ -8,33 +8,11 @@ Riff is a desktop application designed to bridge the gap between streaming and o
 
 > ⚡ **Quick Start**: After installation, you'll need to add your own [Spotify API credentials](#-spotify-api-setup-required) (free, takes 2 minutes).
 
-## 🆕 What's New in v1.1.0
-**Latest Release (2026-01-10)**
+## 🆕 What's New in v1.1.1
+# v1.1.1 (2026-01-10)
 
-### ✨ New Features
-- **YouTube Integration**: Direct downloads from YouTube URLs.
-- **Miniplayer**: New compact window mode for background listening.
-- **Advanced Playback Controls**: Added Shuffle and Loop functionality.
-- **Smart Automation**: "Liked" songs are now automatically downloaded.
-- **Enhanced Playlists**: Improved playlist management with "Downloads" and "Liked Songs" auto-playlists.
-
-### 🎨 Improvements
-- **UI Refinements**: Added new control buttons and updated styling for active states.
-- **Playlist Sync**: Deleting a download now removes it from all playlists.
-- **Cover Art**: Better support for YouTube thumbnails and fallback images.
-
-## ✨ Features
-
-- **Search & Discover**: Access the vast library of songs via Spotify search integration.
-- **Offline Downloads**: Automatically download tracks to your local machine for offline playback.
-- **Smart Playlists**: 
-  - **Liked Songs**: Quickly save your favorites.
-  - **Downloads**: Auto-managed playlist of all your offline tracks.
-  - **Custom Playlists**: Create and organize your own collections.
-- **Customization**:
-  - **Custom Covers**: Set your own images for playlists or let Riff auto-select the album art from the first track.
-  - **Themes**: Built-in dark mode with aesthetic gradients and transparency effects.
-- **Seamless Playback**: Background playback, queue management, and immediate local file streaming.
+## 🐛 Bug Fixes
+- **Context Menu**: Fixed an issue where the "Remove from Playlist" button displayed duplicate text and an incorrect playlist name in the right-click context menu.
 
 ## 📸 Screenshots
 
